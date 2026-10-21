@@ -1,0 +1,13 @@
+# dependencies (this project has none at runtime)
+node_modules/
+
+# capture working files
+frames/
+*.tmp
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

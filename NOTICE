@@ -1,0 +1,8 @@
+Exo Skeleton 1
+Copyright 2026 The Exo Skeleton 1 Authors
+
+This product includes software developed by the Exo Skeleton 1 Authors.
+
+This project loads three.js (https://threejs.org) at runtime from a CDN.
+three.js is distributed under the MIT License and is not bundled in this
+repository; no three.js source is included or redistributed here.
