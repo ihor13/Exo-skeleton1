@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<!--
+  Exo Skeleton 1 — Parts Reference viewer
+  Copyright 2026 The Exo Skeleton 1 Authors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exo Skeleton 1 — Build Reference</title>
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#141a22;
+    --panel-2:#1b232d;
+    --line:#28323f;
+    --txt:#dce4ee;
+    --dim:#8695a8;
+    --accent:#2fd3c4;
+    --accent-2:#e0a040;
+    --mono: ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+  #stage{flex:1;position:relative;min-width:0}
+  #canvas-wrap{position:absolute;inset:0}
+  canvas{display:block}
+
+  #hud{
+    position:absolute;top:18px;left:20px;pointer-events:none;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--dim);
+  }
+  #hud b{display:block;font-size:15px;letter-spacing:.2em;color:var(--txt);margin-bottom:4px}
+
+  #toolbar{
+    position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+    display:flex;gap:5px;background:rgba(20,26,34,.93);border:1px solid var(--line);
+    border-radius:11px;padding:6px;backdrop-filter:blur(8px);flex-wrap:wrap;
+    justify-content:center;max-width:calc(100% - 36px);
+    box-shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  .tbtn{
+    background:transparent;border:1px solid transparent;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:8px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;
+  }
+  .tbtn:hover{color:var(--txt);background:var(--panel-2)}
+  .tbtn.on{color:#07120f;background:var(--accent);border-color:var(--accent)}
+
+  #tip{
+    position:absolute;pointer-events:none;padding:5px 9px;border-radius:6px;
+    background:#27323f;color:#fff;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.06em;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:5;
+    box-shadow:0 3px 12px rgba(0,0,0,.5);
+  }
+
+  #side{
+    width:396px;flex:0 0 396px;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  #side header{padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+  #side header h1{margin:0;font-size:12.5px;letter-spacing:.22em;font-family:var(--mono);text-transform:uppercase}
+  #side header p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:var(--dim)}
+
+  #tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{
+    flex:1;padding:11px 0;text-align:center;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--dim);cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+  #body{flex:1;overflow-y:auto;padding:16px 22px 40px}
+  #body::-webkit-scrollbar{width:9px}
+  #body::-webkit-scrollbar-thumb{background:#2a3542;border-radius:9px}
+
+  .group-label{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;margin:17px 0 7px;
+  }
+  .group-label:first-child{margin-top:0}
+  .plist{display:flex;flex-direction:column;gap:3px}
+  .pitem{
+    display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;
+  }
+  .pitem:hover{background:var(--panel-2)}
+  .pitem.on{background:#16332f;border-color:var(--accent)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  .pitem .qty{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim)}
+
+  .d-head{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:15px}
+  .d-kicker{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase}
+  .d-head h2{margin:7px 0 4px;font-size:19px;letter-spacing:-.01em}
+  .d-head .sub{font-size:12.5px;color:var(--dim)}
+  .sec{margin-bottom:16px}
+  .sec h3{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;margin:0 0 7px;
+  }
+  .sec p{margin:0;font-size:13px;line-height:1.62;color:#c3cedc}
+  table.specs{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.specs td{padding:6px 0;border-bottom:1px solid #222b36;vertical-align:top}
+  table.specs td:first-child{color:var(--dim);width:42%;padding-right:10px}
+  table.specs td:last-child{font-family:var(--mono);font-size:11.5px}
+  ul.notes{margin:0;padding-left:17px;font-size:13px;line-height:1.6;color:#c3cedc}
+  ul.notes li{margin-bottom:5px}
+  .pill{
+    display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;padding:3px 7px;border-radius:5px;border:1px solid var(--line);
+    color:var(--dim);margin-right:5px;margin-top:7px;background:var(--panel-2);
+  }
+  .empty{color:var(--dim);font-size:13px;line-height:1.6;padding:28px 2px}
+  .backbtn{
+    background:none;border:none;color:var(--accent);font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.1em;cursor:pointer;padding:0;margin-bottom:12px;text-transform:uppercase;
+  }
+  code{font-family:var(--mono);font-size:11.5px;background:#10161e;padding:1px 5px;border-radius:4px;color:var(--accent-2)}
+
+  @media (max-width:900px){
+    body{flex-direction:column}
+    #side{width:100%;flex:0 0 46%;border-left:none;border-top:1px solid var(--line)}
+    #stage{flex:1 1 54%}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="canvas-wrap"></div>
+  <div id="hud"><b>EXO SKELETON 1</b>WEARABLE ARMOR RIG · 14 POWERED AXES</div>
+  <div id="tip"></div>
+  <div id="toolbar">
+    <button class="tbtn" data-act="explode">Exploded</button>
+    <button class="tbtn on" data-act="lamp">Chest Lamp</button>
+    <button class="tbtn" data-act="wiring">Power Harness</button>
+    <button class="tbtn" data-act="xray">X-Ray Shell</button>
+    <button class="tbtn" data-act="spin">Auto-Spin</button>
+    <button class="tbtn" data-act="reset">Reset View</button>
+  </div>
+</div>
+
+<aside id="side">
+  <header>
+    <h1>Build Reference</h1>
+    <p>Click any part in the 3D view — or in the list — to see what it is, how it actuates, and how to fabricate it.</p>
+  </header>
+  <div id="tabs">
+    <div class="tab on" data-tab="parts">Parts</div>
+    <div class="tab" data-tab="detail">Detail</div>
+    <div class="tab" data-tab="power">Power</div>
+  </div>
+  <div id="body"></div>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================================
+   EXO SKELETON 1 — original wearable-armor reference rig
+   Segmented plate construction: gorget, lames, pauldrons, tassets, poleyns.
+   ========================================================================= */
+
+/* ---------------------------- PART DATABASE ---------------------------- */
+const DB = {
+  'lamp': {
+    group:'Power & Light', color:'#0d8f86', qty:'×1',
+    kicker:'Chest Module', name:'Sternum Lamp Module',
+    sub:'100 mm forward-throw lamp, quick-release magnetic mount',
+    how:'A ring of twelve 1 W LEDs sits behind a frosted polycarbonate diffuser, driven by a constant-current buck driver rather than resistors — resistors waste the voltage as heat and dim as the battery sags, while a buck driver holds the same brightness from a full pack down to cutoff. A hall-effect sensor under the rim reads a magnet in the bezel, so twisting the bezel steps brightness without any hole through the armor for a switch.',
+    specs:[['LEDs','12 × 1 W, 5000 K, on MCPCB ring'],['Driver','Buck CC, 700 mA, PWM dim in'],['Optic','3 mm frosted PC diffuser, 110° spread'],['Draw','8.4 W max / 2.1 W at 25% step'],['Mount','4 × N45 magnets + safety lanyard'],['Heat','Alu ring doubles as sink, 38 °C @ 20 min']],
+    notes:['Put the driver behind the lamp, not in the back pack — a long high-current run to the LEDs picks up noise and voltage drop.','The MCPCB must touch bare aluminium with thermal pad between. LEDs glued to plastic will dim and then die.','Add a thermal cutoff at 70 °C in series with the enable pin. It costs nothing and saves the module.'],
+    pills:['8.4 W','Quick-release','Dimmable']
+  },
+  'battery': {
+    group:'Power & Light', color:'#b4661a', qty:'×1',
+    kicker:'Lumbar Pack', name:'Battery & Power Pack',
+    sub:'4S lithium pack, lumbar-mounted, fused and BMS-protected',
+    how:'A 4S2P pack of 21700 cells sits in the lumbar plate, right over your centre of mass, so the weight loads your hips instead of hanging off your shoulders. The pack feeds two rails: a raw 14.8–16.8 V rail for the high-torque joints, and a 6 V buck rail for the small servos, because feeding a hobby servo 16 V will cook it in seconds.',
+    specs:[['Cells','8 × 21700 Li-ion, 4S2P'],['Nominal','14.8 V, 9.6 Ah, 142 Wh'],['BMS','4S 60 A, balance + over-discharge cutoff'],['Rails','16.8 V raw · 6.0 V / 20 A buck · 5 V / 3 A logic'],['Protection','40 A ANL fuse at pack positive'],['Runtime','~75 min mixed posing, ~4 h lamp only'],['Mass','1.42 kg incl. case']],
+    notes:['Under 160 Wh you can carry it on a plane in the cabin. This pack is sized to stay under that line on purpose.','Fuse at the pack, not at the load. A short in the harness with no pack-side fuse is a fire inside a suit you are wearing.','Keep the main switch and the charge port reachable from outside the armour while you are wearing it. You will not be able to take the back plate off alone.'],
+    pills:['142 Wh','4S2P','Hot-swap']
+  },
+  'bus': {
+    group:'Power & Light', color:'#b4661a', qty:'—',
+    kicker:'Harness', name:'Power & Signal Harness',
+    sub:'Star-topology power, daisy-chained data',
+    how:'Power runs as a star — every limb gets its own pair back to a bus bar at the pack, so a stalled knee cannot brown out the shoulders. Data is the opposite: one differential daisy chain through all smart actuators, each with its own ID. Every joint gets a service loop and a connector, so a limb unplugs as a unit.',
+    specs:[['Power trunk','12 AWG silicone to bus bar'],['Limb drops','16 AWG silicone, XT30 per limb'],['Data','TTL half-duplex, JST-XH chain'],['Connectors','XT30 power · JST data · keyed'],['Strain relief','Clamp both sides of every joint crossing']],
+    notes:['Route cable on the inside radius of each joint. On the outside, the joint stretches the loom every time it closes.','Silicone insulation, not PVC — PVC goes stiff and cracks where the limb flexes.','Label every connector at both ends before you close the shell. You will be debugging this blind, inside a costume.'],
+    pills:['Star power','Daisy data','Per-limb drops']
+  },
+  'controller': {
+    group:'Power & Light', color:'#b4661a', qty:'×1',
+    kicker:'Dorsal Bay', name:'Control Board & IMU',
+    sub:'32-bit MCU, pose sequencer, inline current sensing',
+    how:'An ESP32-class board sequences poses rather than running live inverse kinematics — in a costume you want a handful of rehearsed, timed motions you can trigger, not a robot solving for itself. Each pose is an array of joint angles with a duration, interpolated with an ease curve so the frame moves like a machine under load instead of snapping. An IMU in the chest kills all motion if the wearer tilts past 25°.',
+    specs:[['MCU','ESP32-S3, dual core, BLE + Wi-Fi'],['IMU','6-axis, 100 Hz, tilt + fall detect'],['Current sense','Per-rail INA219, 10 Hz log'],['Inputs','Hand trigger ×2, bezel hall, e-stop'],['Control','BLE handset or wrist pad'],['Firmware','Pose table, cubic ease, soft-start ramps']],
+    notes:['Hard-wired e-stop on the pack rail, not a software stop. Software hangs; a cut rail does not.','Soft-start every motion. Full torque from standstill is what snaps printed brackets.','Log current per joint. A joint whose draw climbs week over week is a bearing about to fail.'],
+    pills:['Pose sequencer','E-stop','Tilt cutoff']
+  },
+  'shoulder': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'2-DOF · Worm Drive', name:'Shoulder Actuator',
+    sub:'Pitch + abduction, worm-geared, self-locking',
+    how:'Two stages: an abduction stage lifting the arm away from the torso, and a pitch stage swinging it forward. Both use worm gearing, which cannot be back-driven — the arm holds its pose with the motor unpowered, so the pack is not burning current all day just to keep a limb up. That is the single biggest runtime win on the whole frame.',
+    specs:[['Motor','28 mm BLDC + 1:50 worm'],['Holding torque','14 N·m, unpowered (self-lock)'],['Range','Abduction 0–95° · Pitch −40–110°'],['Speed','18°/s under 2 kg load'],['Feedback','14-bit magnetic encoder on output'],['Draw','0.4 A idle · 6.2 A peak'],['Mass','0.61 kg per shoulder']],
+    notes:['Worm drive is loud. Grease it properly and line the housing with 3 mm mass-loaded vinyl or you will hear nothing else all day.','Hard end-stops in the aluminium bracket, not in firmware alone. Firmware crashes at the worst possible angle.','The shoulder carries every arm load in bending. This is one of the four brackets to cut from aluminium, not print.'],
+    pills:['2-DOF','Self-locking','14 N·m']
+  },
+  'elbow': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'1-DOF · Planetary', name:'Elbow Actuator',
+    sub:'Single-axis flexion with slip clutch',
+    how:'A planetary-geared brushed motor on a crossed-roller bearing. Unlike the shoulder, this one is deliberately back-drivable through a friction clutch set just above the torque it needs — if the forearm catches on a doorway or a person, the clutch slips instead of the gear train stripping or the wearer getting pinched.',
+    specs:[['Motor','Brushed 24 V + 1:100 planetary'],['Torque','6.5 N·m continuous · clutch at 8 N·m'],['Range','0–135° flexion'],['Speed','45°/s no load'],['Feedback','Potentiometer on output shaft'],['Draw','0.2 A idle · 3.8 A peak'],['Mass','0.34 kg']],
+    notes:['Set the clutch with a torque wrench on a test jig before it goes in the arm, and write the number on the bracket.','Leave 15 mm of clearance inside the elbow shell at full flexion for the cable loop.','Soft foam on the inner shell. At full fold this is the joint that bruises your own arm.'],
+    pills:['Slip clutch','6.5 N·m','135°']
+  },
+  'wrist': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'1-DOF · Micro Servo', name:'Wrist Rotator',
+    sub:'Forearm roll on a slew ring',
+    how:'A small smart servo drives a 60 mm slew ring that carries the hand shell. The ring takes the bending load so the servo output shaft only sees rotation, which is what kills cheap servos in costume builds — people hang armour directly off the splined horn and the shaft bends.',
+    specs:[['Actuator','Smart serial servo, 3.5 N·m @ 7.4 V'],['Bearing','60 mm thin-section slew ring'],['Range','±120° roll'],['Feedback','Built-in, serial position read'],['Draw','0.05 A idle · 1.4 A peak'],['Mass','0.14 kg']],
+    notes:['Never load a servo horn in bending. Ring bearing carries the shell, servo carries only torque.','This is the joint most likely to catch a glove liner. Test it with the full costume on.','Runs off the 6 V rail — tapping it off the raw 16.8 V rail will destroy it immediately.'],
+    pills:['6 V rail','Slew ring','±120°']
+  },
+  'waist': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×1',
+    kicker:'1-DOF · Turntable', name:'Waist Rotation Ring',
+    sub:'Torso yaw over a 220 mm bearing',
+    how:'A large thin-section turntable between the chest cage and the pelvic girdle, belt-driven off a geared motor rather than direct-driven, so the belt absorbs shock loads and the wearer can be turned by hand in an emergency. The slip ring in the centre is what lets the torso spin without twisting the harness that feeds the arms and lamp.',
+    specs:[['Bearing','220 mm thin-section turntable'],['Drive','HTD-5M belt, 1:4 reduction'],['Torque','22 N·m at ring'],['Range','±75° (mechanically limited)'],['Slip ring','12-circuit, 10 A power + 4 signal'],['Mass','0.88 kg incl. ring']],
+    notes:['The slip ring is what makes this joint possible. Without it the loom twists and tears after a dozen rotations.','Limit to ±75°. Full rotation looks dramatic and feels awful on a human spine inside the frame.','Belt tension on an idler you can reach from the back hatch — you will retension it at every event.'],
+    pills:['Slip ring','±75°','Belt drive']
+  },
+  'hip': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'2-DOF · Worm + Harmonic', name:'Hip Actuator',
+    sub:'Highest-load joint on the frame',
+    how:'Flexion comes from a harmonic drive for zero backlash, abduction from a worm stage that self-locks. The hip carries the entire mass of the leg armour plus whatever share of the frame the leg is supporting, so it is sized with roughly double the margin of the shoulder and bolted straight into the pelvic girdle.',
+    specs:[['Motor','40 mm BLDC + 1:80 harmonic (flex)'],['Secondary','1:60 worm (abduction)'],['Torque','34 N·m flexion · 18 N·m abduction'],['Range','Flex −25–95° · Abd 0–45°'],['Feedback','Dual 14-bit encoders'],['Draw','0.6 A idle · 11 A peak'],['Mass','1.18 kg per hip']],
+    notes:['Cut the hip brackets from 6061 aluminium. A printed hip bracket is the part that fails first and fails worst.','Peak draw here sets your wire gauge and fuse rating for the whole lower half.','Never power both hips into flexion at once unless the wearer is seated or on the stand.'],
+    pills:['34 N·m','Zero backlash','Aluminium']
+  },
+  'knee': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'1-DOF · Linear Actuator', name:'Knee Linear Actuator',
+    sub:'Ball-screw ram on a four-bar linkage',
+    how:'Instead of a rotary motor at the knee axis, a ball-screw ram pushes a four-bar linkage. The mechanical advantage changes through the stroke — strongest near full extension, where the leg actually has to hold weight, and lighter at full bend where it only has to move the shell. A ball screw also holds position with no current at all.',
+    specs:[['Actuator','12 mm ball screw, 150 mm stroke'],['Force','1800 N static · 1100 N dynamic'],['Equivalent','26 N·m at knee, extended'],['Range','0–120° flexion'],['Speed','22 mm/s'],['Feedback','Linear hall on ram body'],['Mass','0.72 kg']],
+    notes:['Limit switches at both ends of the stroke, wired in hardware. Driving a ball screw into its own end stop destroys the nut.','The linkage geometry is the design. Model it in 2D and sweep the angle before you cut any metal.','Bellows boot over the screw. Convention dust in a ball screw is how it seizes mid-event.'],
+    pills:['Ball screw','1800 N','Holds unpowered']
+  },
+  'ankle': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×2',
+    kicker:'2-DOF · Cable Driven', name:'Ankle Gimbal',
+    sub:'Pitch + roll, motors relocated to the shin',
+    how:'Both motors live up in the shin and drive the ankle through Bowden cables, which keeps mass off the end of the limb — the single most effective thing you can do for how a walking rig feels. Tension springs on the return side take up slack so the cables never go loose and skip.',
+    specs:[['Motors','2 × smart servo, 6 N·m, shin-mounted'],['Transmission','1.5 mm Bowden, PTFE lined'],['Range','Pitch ±20° · Roll ±12°'],['Feedback','Servo-side only (open loop at joint)'],['Draw','0.1 A idle · 2.6 A peak'],['Mass','0.21 kg at joint · 0.38 kg in shin']],
+    notes:['Cable-driven means the joint angle is inferred, not measured. Re-zero it every time you re-tension.','Mass at the ankle is the worst mass on the frame. Keep everything you can up in the shin.','The foot plate must carry the wearer, not the gimbal. Load path goes boot sole to ground, bypassing the mechanism.'],
+    pills:['Bowden','Low distal mass','±20°']
+  },
+  'neck': {
+    group:'Powered Joints', color:'#3f5bd8', qty:'×1',
+    kicker:'2-DOF + Visor', name:'Neck & Visor Mechanism',
+    sub:'Helmet yaw/pitch plus a lifting visor',
+    how:'The helmet shell rotates on a low-profile ring around the wearer\'s own head, with two micro servos for yaw and pitch so the shell can look independently of the wearer. A separate micro linear actuator lifts the visor on a cam slot — the cam gives it the slow-then-quick motion that makes a mechanism read as powered rather than hinged.',
+    specs:[['Yaw/Pitch','2 × micro smart servo, 1.8 N·m'],['Visor','30 mm micro linear actuator, 60 N'],['Range','Yaw ±45° · Pitch ±18° · Visor 0–55°'],['Lift time','0.9 s on an ease curve'],['Draw','0.03 A idle · 0.9 A peak'],['Mass','0.26 kg total']],
+    notes:['Hard limits before anything can touch the wearer\'s face. Then test it on a dummy head, repeatedly, before your own.','Manual release so the visor opens with no power. Non-negotiable — overheating in a sealed helmet is the real hazard in this hobby.','Fans in the helmet, always. Two 40 mm blowers drawing from the neck ring.'],
+    pills:['Manual release','Cam lift','Fans required']
+  },
+  'gorget': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×1',
+    kicker:'Shell', name:'Gorget & Collar Lames',
+    sub:'Three overlapping neck lames on a leather riveted base',
+    how:'Three curved lames overlap downward like roof tiles, each riveted to a hidden leather strap so they slide over one another as the wearer turns their head. It is the oldest trick in plate armour and it is still the only way to cover a neck without locking it. The top lame carries the helmet ring bearing.',
+    specs:[['Lames','3, PETG 2 mm, 18 mm overlap'],['Base','3 mm veg-tan leather, copper rivets'],['Travel','±40° yaw with full coverage'],['Mass','0.29 kg']],
+    notes:['Overlap downward and outward. Overlap the wrong way and the lames catch on each other at the worst angle.','Rivet through a washer on the inside or the plastic tears out around the hole.','This is the part people skip and then regret — a rigid collar makes the whole costume feel like a box.'],
+    pills:['3 lames','Articulated','Leather base']
+  },
+  'chest-shell': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×1',
+    kicker:'Shell', name:'Chest Cage & Pectoral Plates',
+    sub:'Load-bearing cage with shaped pectoral and ab lames',
+    how:'Two separate things in one place: an internal cage of aluminium extrusion that carries every load, and a cosmetic shell that carries nothing but itself. The shell is shaped — two angled pectoral plates meeting at a sternum channel, four abdominal lames below that slide on each other so the wearer can bend. Keeping shell and cage separate means you can redesign the look without re-engineering the frame.',
+    specs:[['Cage','20 × 20 mm alu extrusion, bolted'],['Pectorals','PETG 3 mm, 12° dihedral at sternum'],['Ab lames','4, sliding, 14 mm overlap'],['Finish','Filler primer → 400/800 wet → 2K clear'],['Attach','M4 heat-set inserts + captive nuts'],['Mass','2.1 kg cage · 1.6 kg shell']],
+    notes:['PETG over PLA for anything worn outdoors. PLA goes soft in a hot car and your shell warps on the drive.','The ab lames need to slide, not flex. Slot the fixing holes so each lame can travel 8 mm.','Design every panel so it comes off from the outside, with the suit on.'],
+    pills:['PETG','4 ab lames','Separate cage']
+  },
+  'pauldron': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×2',
+    kicker:'Shell', name:'Layered Pauldron',
+    sub:'Rondel cap over three articulated lames',
+    how:'A domed rondel cap with three lames fanning down over the upper arm, each on its own sprung standoff. The lames spread as the shoulder abducts and nest back together when the arm drops, which is what makes the shoulder read as armour rather than a shell with a hole in it. The springs also absorb the knocks it will take in a crowd instead of transmitting them into the gearbox.',
+    specs:[['Cap','Domed rondel, PETG 2.5 mm'],['Lames','3 per side, 16 mm overlap'],['Mount','2 × sprung M4 standoff, 8 mm travel'],['Clearance','12 mm at full abduction'],['Mass','0.41 kg each']],
+    notes:['Check clearance at the full joint sweep with the shell on, not off. This is where builds bind.','Each lame needs its own pivot. One rigid piece pretending to be three looks wrong the moment the arm lifts.','Edge-wrap the inner rim in silicone trim — it will otherwise saw into the chest shell paint.'],
+    pills:['3 lames','Sprung','Rondel cap']
+  },
+  'forearm-shell': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×2',
+    kicker:'Shell', name:'Vambrace, Couter & Gauntlet',
+    sub:'Clamshell vambrace, fluted elbow cop, articulated hand',
+    how:'The forearm is a clamshell vambrace with a piano hinge and magnetic catches. At the elbow, a fluted couter cup covers the actuator and overlaps both the bicep cuff above and the vambrace below, so the joint stays covered through the full fold. The gauntlet carries a knuckle plate and two sliding segments per finger.',
+    specs:[['Vambrace','PETG 2.5 mm, full clamshell'],['Couter','Fluted cop, 20 mm overlap each side'],['Gauntlet','Knuckle plate + 2 segments × 4 fingers'],['Closure','Piano hinge + 6 × N45 catch'],['Mass','0.52 kg each incl. hand']],
+    notes:['Build a service hatch into every limb. You will open these more than any other panel.','The couter must overlap in both directions or you get a bare gap at exactly 90°.','Finger segments ride on elastic, not pins at this scale — pins at 8 mm are a repair job waiting to happen.'],
+    pills:['Tool-free','Fluted couter','Articulated hand']
+  },
+  'tasset': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×4',
+    kicker:'Shell', name:'Belt & Tassets',
+    sub:'Hanging hip plates on a load-bearing belt',
+    how:'Two tassets per side hang off the belt on short straps rather than bolting rigid, so they swing out of the way when the hip flexes and fall back into place after. The belt itself is structural — it is where the pack load transfers from the torso cage into the hip girdle, so it is a proper 50 mm webbing belt over an aluminium core, not a decorative strip.',
+    specs:[['Tassets','4, PETG 2.5 mm, strap-hung'],['Belt','50 mm webbing over 3 mm alu core'],['Swing','±35° free travel'],['Mass','0.46 kg per side']],
+    notes:['Hang them, never bolt them. A rigid tasset stops the hip at about 40° and you will feel it on the first step.','The belt is a load path, not trim. Size it like one.'],
+    pills:['Strap-hung','Load path','±35°']
+  },
+  'thigh-shell': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×2',
+    kicker:'Shell', name:'Cuisse, Poleyn & Greave',
+    sub:'Segmented leg plates with a winged knee cop',
+    how:'The thigh is segmented plates on a flexible TPU spine, the knee is a domed poleyn with a side wing that hides the linkage pivot, and the shin is a greave with a flared calf plate behind it. The segments slide over each other as the knee bends, which is what lets a hard-shell leg fold past 90° without a gap opening at the back.',
+    specs:[['Cuisse','4 plates, PETG 2.5 mm'],['Spine','TPU 95A, 4 mm'],['Poleyn','Domed cop + side wing'],['Greave','Front plate + flared calf plate'],['Travel','0–120° knee flex'],['Mass','0.98 kg per leg']],
+    notes:['Mock the segment overlap in cardboard first. It is cheap and it is always wrong on the first try.','The poleyn wing is not decoration — it is what covers the linkage pivot through the whole sweep.','The gap at full flex is where paint chips. Chamfer and clear-coat the overlap edges.'],
+    pills:['Segmented','TPU spine','Winged poleyn']
+  },
+  'boot': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×2',
+    kicker:'Structure', name:'Sabaton & Ground Plate',
+    sub:'Load path to ground, with articulated toe lames',
+    how:'A 4 mm aluminium plate under the wearer\'s own boot takes the entire frame load straight into the floor, bypassing the ankle mechanism completely. Over it sits a sabaton: a heel cup, an instep plate and three toe lames that let the foot roll through a step. This is the detail that decides whether a rig is wearable for eight hours or twenty minutes.',
+    specs:[['Plate','4 mm 6061 alu, 290 × 110 mm'],['Sabaton','Heel cup + instep + 3 toe lames'],['Sole','12 mm EVA + rubber outsole'],['Mass','1.06 kg per boot']],
+    notes:['Load path: frame → ground plate → sole → floor. The ankle gimbal must never be in that path.','Toe lames need to articulate or you cannot climb a stair — the foot has to bend somewhere.','Rubber outsole, not bare plastic. Polished convention floors are ice.'],
+    pills:['Load-bearing','3 toe lames','6061 alu']
+  },
+  'helmet-shell': {
+    group:'Structure & Shell', color:'#8795a6', qty:'×1',
+    kicker:'Shell', name:'Helmet Shell & Visor',
+    sub:'Faceted shell, brow ridge, cheek plates, tinted visor',
+    how:'A faceted shell on a padded suspension liner, clear of the wearer\'s head on all sides so it can move without dragging on skin. A brow ridge shades the visor slot and stiffens the front, cheek plates taper into the jaw, and a low crest runs back over the crown as a stiffening rib. Two 40 mm blowers pull air in at the neck ring and exhaust past the visor, which is what stops it fogging.',
+    specs:[['Shell','PETG 3 mm, suspension liner'],['Visor','2 mm tinted polycarbonate'],['Features','Brow ridge · cheek plates · crown crest'],['Ventilation','2 × 40 mm blower, 5 V, 9 CFM'],['Comms','Bone-conduction mic + speaker'],['Mass','1.02 kg incl. mechanism']],
+    notes:['Polycarbonate, not acrylic. Acrylic breaks into sharp pieces in front of your eyes.','Fans on whenever the helmet is closed, interlocked so they cannot be switched off while the visor is down.','Vision test: can you see your own feet and a step down? If not, redesign the eye opening.'],
+    pills:['Polycarbonate','Forced air','Suspension liner']
+  }
+};
+const GROUP_ORDER = ['Power & Light','Powered Joints','Structure & Shell'];
+
+/* ------------------------------- SCENE -------------------------------- */
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef1f5);
+scene.fog = new THREE.Fog(0xeef1f5, 8, 20);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+wrap.appendChild(renderer.domElement);
+
+/* light studio setup */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc3ccd6, 0.85));
+const key  = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(4,6,5);    scene.add(key);
+const fill = new THREE.DirectionalLight(0xdfe8f5, 0.45); fill.position.set(-5,2.5,3); scene.add(fill);
+const back = new THREE.DirectionalLight(0xffffff, 0.35); back.position.set(0,3,-6);   scene.add(back);
+const under= new THREE.DirectionalLight(0xe8eef6, 0.22); under.position.set(0,-4,1);  scene.add(under);
+
+const grid = new THREE.GridHelper(16, 32, 0xc6d0da, 0xdfe5ec);
+scene.add(grid);
+const disc = new THREE.Mesh(new THREE.CircleGeometry(1.45, 56),
+  new THREE.MeshBasicMaterial({color:0xe3e8ee}));
+disc.rotation.x = -Math.PI/2; disc.position.y = 0.003; scene.add(disc);
+
+/* ------------------------------ MATERIALS ----------------------------- */
+const M = {
+  shell:   new THREE.MeshStandardMaterial({color:0xaeb8c4, metalness:0.55, roughness:0.40}),
+  shellDk: new THREE.MeshStandardMaterial({color:0x5c6775, metalness:0.60, roughness:0.45}),
+  trim:    new THREE.MeshStandardMaterial({color:0x323b47, metalness:0.45, roughness:0.55}),
+  actuator:new THREE.MeshStandardMaterial({color:0x4f63a8, metalness:0.80, roughness:0.32}),
+  metal:   new THREE.MeshStandardMaterial({color:0x8d96a2, metalness:0.95, roughness:0.22}),
+  power:   new THREE.MeshStandardMaterial({color:0xcf8a2c, metalness:0.55, roughness:0.40}),
+  leather: new THREE.MeshStandardMaterial({color:0x6b5542, metalness:0.05, roughness:0.90}),
+  glow:    new THREE.MeshStandardMaterial({color:0xe8fffd, emissive:0x15c4b6, emissiveIntensity:1.5, roughness:0.25}),
+  wire:    new THREE.MeshStandardMaterial({color:0xcf8a2c, metalness:0.3, roughness:0.6})
+};
+
+const clickable = [];
+const limbGroups = [];
+
+/* ------------------------- GEOMETRY HELPERS --------------------------- */
+/* beveled plate — rounded rect extruded with a bevel, giving armour-like
+   soft edges instead of hard boxes */
+function rrShape(w,h,r){
+  const s = new THREE.Shape();
+  const x = -w/2, y = -h/2;
+  s.moveTo(x+r, y);
+  s.lineTo(x+w-r, y);       s.quadraticCurveTo(x+w, y, x+w, y+r);
+  s.lineTo(x+w, y+h-r);     s.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  s.lineTo(x+r, y+h);       s.quadraticCurveTo(x, y+h, x, y+h-r);
+  s.lineTo(x, y+r);         s.quadraticCurveTo(x, y, x+r, y);
+  return s;
+}
+function plateGeo(w,h,d,r,bev){
+  bev = bev === undefined ? Math.min(0.012, d*0.33) : bev;
+  r = Math.min(r, Math.min(w,h)/2 - 0.001);
+  const g = new THREE.ExtrudeGeometry(rrShape(w,h,r), {
+    depth: Math.max(d - bev*2, 0.002), bevelEnabled:true,
+    bevelThickness:bev, bevelSize:bev, bevelSegments:2, curveSegments:6, steps:1
+  });
+  g.center();
+  return g;
+}
+const plate = (w,h,d,r,mat,bev)=>new THREE.Mesh(plateGeo(w,h,d,r,bev), mat);
+const box   = (w,h,d,mat)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+const cyl   = (rt,rb,h,mat,s)=>new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,s||20), mat);
+const sph   = (r,mat)=>new THREE.Mesh(new THREE.SphereGeometry(r,22,16), mat);
+/* domed cap — half sphere, used for rondels, poleyns, helmet crown */
+function dome(r, mat, squash){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r,20,12,0,Math.PI*2,0,Math.PI/2), mat);
+  m.scale.y = squash || 0.7;
+  return m;
+}
+/* curved lame — a slice of a tube, the workhorse of articulated armour */
+function lame(radius, thick, width, arc, mat){
+  const g = new THREE.CylinderGeometry(radius, radius, width, 22, 1, true, -arc/2, arc);
+  const inner = new THREE.CylinderGeometry(radius-thick, radius-thick, width, 22, 1, true, -arc/2, arc);
+  const m = new THREE.Mesh(g, mat);
+  const im = new THREE.Mesh(inner, mat);
+  im.scale.set(1,1,1);
+  const grp = new THREE.Group();
+  m.rotation.x = Math.PI/2; im.rotation.x = Math.PI/2;
+  grp.add(m); grp.add(im);
+  /* cap the edges so it does not read as paper-thin */
+  const cap = new THREE.Mesh(new THREE.RingGeometry(radius-thick, radius, 20, 1, -arc/2, arc), mat);
+  const cap2 = cap.clone();
+  cap.position.z = width/2; cap2.position.z = -width/2; cap2.rotation.y = Math.PI;
+  grp.add(cap); grp.add(cap2);
+  return grp;
+}
+
+function part(obj, id, explodeDir){
+  obj.traverse(o=>{ if(o.isMesh){ o.userData.partId = id; clickable.push(o); } });
+  if (obj.isMesh){ obj.userData.partId = id; }
+  if (explodeDir) obj.userData.explode = explodeDir;
+  obj.userData.partId = id;
+  return obj;
+}
+/* meshes inside a Group need registering individually */
+function reg(obj, id){
+  obj.traverse(o=>{ if(o.isMesh && !o.userData.partId){ o.userData.partId = id; clickable.push(o); } });
+  return obj;
+}
+
+/* --------------------------- BUILD THE FRAME -------------------------- */
+const frame = new THREE.Group();
+scene.add(frame);
+
+/* ================= TORSO ================= */
+const torso = new THREE.Group(); frame.add(torso);
+
+/* pectoral plates — two angled plates meeting at a sternum channel */
+[-1,1].forEach(s=>{
+  const pec = plate(0.22, 0.26, 0.055, 0.045, M.shell);
+  pec.position.set(s*0.125, 1.42, 0.115);
+  pec.rotation.y = -s*0.21;
+  pec.rotation.z = s*0.05;
+  torso.add(part(pec, 'chest-shell', new THREE.Vector3(s*0.6,0.2,0.6)));
+
+  /* upper chest bevel plate */
+  const up = plate(0.19, 0.09, 0.05, 0.035, M.shellDk);
+  up.position.set(s*0.115, 1.565, 0.09);
+  up.rotation.y = -s*0.24; up.rotation.x = -0.32;
+  torso.add(part(up, 'chest-shell'));
+
+  /* oblique side plate */
+  const ob = plate(0.10, 0.22, 0.05, 0.035, M.shellDk);
+  ob.position.set(s*0.235, 1.30, 0.01);
+  ob.rotation.y = -s*1.15;
+  torso.add(part(ob, 'chest-shell'));
+});
+
+/* sternum channel */
+const sternum = plate(0.055, 0.30, 0.04, 0.02, M.trim);
+sternum.position.set(0, 1.40, 0.125);
+torso.add(part(sternum, 'chest-shell'));
+
+/* abdominal lames — four sliding bands */
+for(let i=0;i<4;i++){
+  const w = 0.30 - i*0.018;
+  const lm = plate(w, 0.058, 0.05, 0.026, i%2 ? M.shellDk : M.shell);
+  lm.position.set(0, 1.235 - i*0.052, 0.102 - i*0.004);
+  lm.rotation.x = 0.07 + i*0.02;
+  torso.add(part(lm, 'chest-shell', new THREE.Vector3(0,-0.2,1)));
+}
+/* back plate */
+const backPlate = plate(0.40, 0.44, 0.06, 0.06, M.shell);
+backPlate.position.set(0, 1.35, -0.135);
+torso.add(part(backPlate, 'chest-shell', new THREE.Vector3(0,0,-1)));
+const spineRib = plate(0.07, 0.40, 0.045, 0.025, M.trim);
+spineRib.position.set(0, 1.35, -0.175);
+torso.add(part(spineRib, 'chest-shell'));
+/* shoulder-blade plates */
+[-1,1].forEach(s=>{
+  const bl = plate(0.15, 0.19, 0.045, 0.045, M.shellDk);
+  bl.position.set(s*0.155, 1.45, -0.125);
+  bl.rotation.y = s*0.3;
+  torso.add(part(bl, 'chest-shell'));
+});
+
+/* ---- gorget: three overlapping neck lames ---- */
+const gorget = new THREE.Group();
+gorget.position.set(0, 1.57, 0.01);
+torso.add(gorget);
+for(let i=0;i<3;i++){
+  const lm = lame(0.112 + i*0.016, 0.012, 0.042, Math.PI*1.35, i===0?M.shellDk:M.shell);
+  lm.rotation.x = Math.PI/2;
+  lm.position.y = 0.045 - i*0.030;
+  lm.rotation.y = Math.PI;
+  gorget.add(lm);
+}
+const collarStrap = cyl(0.098,0.098,0.055,M.leather,20);
+collarStrap.position.y = 0.01;
+gorget.add(collarStrap);
+reg(gorget, 'gorget');
+gorget.userData.explode = new THREE.Vector3(0,1,0);
+
+/* ---- sternum lamp ---- */
+const lampGrp = new THREE.Group();
+lampGrp.position.set(0, 1.44, 0.155);
+torso.add(lampGrp);
+const lampHousing = cyl(0.098, 0.108, 0.06, M.metal, 30);
+lampHousing.rotation.x = Math.PI/2; lampGrp.add(lampHousing);
+const lampBezel = new THREE.Mesh(new THREE.TorusGeometry(0.098, 0.013, 12, 34), M.metal);
+lampBezel.position.z = 0.032; lampGrp.add(lampBezel);
+const lampLens = cyl(0.085, 0.085, 0.012, M.glow, 30);
+lampLens.rotation.x = Math.PI/2; lampLens.position.z = 0.037; lampGrp.add(lampLens);
+for (let i=0;i<12;i++){
+  const a = i/12*Math.PI*2;
+  const led = cyl(0.0085,0.0085,0.01,M.glow,8);
+  led.rotation.x = Math.PI/2;
+  led.position.set(Math.cos(a)*0.058, Math.sin(a)*0.058, 0.026);
+  lampGrp.add(led);
+}
+/* three mounting lugs */
+for(let i=0;i<3;i++){
+  const a = i/3*Math.PI*2 + 0.5;
+  const lug = box(0.022,0.022,0.03,M.metal);
+  lug.position.set(Math.cos(a)*0.105, Math.sin(a)*0.105, -0.01);
+  lampGrp.add(lug);
+}
+reg(lampGrp, 'lamp');
+lampGrp.userData.explode = new THREE.Vector3(0,0,1);
+
+const beam = new THREE.SpotLight(0xffffff, 1.5, 9, Math.PI/5, 0.6, 1.5);
+beam.position.set(0, 1.44, 0.23);
+const beamTarget = new THREE.Object3D(); beamTarget.position.set(0,1.1,6);
+scene.add(beamTarget); beam.target = beamTarget; scene.add(beam);
+const bounce = new THREE.PointLight(0x7fe6dc, 0.5, 1.8);
+bounce.position.set(0,1.44,0.3); scene.add(bounce);
+const coneMat = new THREE.MeshBasicMaterial({color:0x2fd3c4, transparent:true, opacity:0.07, side:THREE.DoubleSide, depthWrite:false});
+const cone = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.3, 32, 1, true), coneMat);
+cone.rotation.x = Math.PI/2; cone.position.set(0,1.44,1.38); scene.add(cone);
+
+/* ---- dorsal pack + controller ---- */
+const packGrp = new THREE.Group();
+packGrp.position.set(0, 1.18, -0.205);
+torso.add(packGrp);
+const packBody = plate(0.32, 0.25, 0.10, 0.03, M.shellDk);
+packGrp.add(packBody);
+for (let i=0;i<4;i++){
+  const cell = cyl(0.027,0.027,0.20,M.power,14);
+  cell.position.set(-0.10 + i*0.067, 0, 0.012);
+  packGrp.add(cell);
+}
+const packVent = plate(0.26,0.03,0.02,0.012,M.trim);
+packVent.position.set(0,-0.095,0.055); packGrp.add(packVent);
+reg(packGrp,'battery'); packGrp.userData.explode = new THREE.Vector3(0,0,-1);
+
+const ctrlGrp = new THREE.Group();
+ctrlGrp.position.set(0,1.44,-0.19);
+torso.add(ctrlGrp);
+const ctrl = plate(0.19,0.10,0.04,0.015,M.metal); ctrlGrp.add(ctrl);
+const ctrlLed = cyl(0.008,0.008,0.006,M.glow,8);
+ctrlLed.rotation.x = Math.PI/2; ctrlLed.position.set(0.065,0.028,0.026); ctrlGrp.add(ctrlLed);
+reg(ctrlGrp,'controller'); ctrlGrp.userData.explode = new THREE.Vector3(0,0,-1);
+
+/* ================= HELMET ================= */
+const headGrp = new THREE.Group(); frame.add(headGrp);
+limbGroups.push({g:headGrp, dir:new THREE.Vector3(0,1,0)});
+
+const neckRing = cyl(0.082,0.082,0.05,M.metal,22);
+neckRing.position.set(0,1.615,0); headGrp.add(part(neckRing,'neck'));
+[-1,1].forEach(s=>{
+  const servo = plate(0.05,0.05,0.045,0.012,M.actuator);
+  servo.position.set(s*0.072,1.635,-0.028); headGrp.add(part(servo,'neck'));
+});
+const visorRam = cyl(0.011,0.011,0.075,M.actuator,10);
+visorRam.position.set(0,1.755,-0.085); headGrp.add(part(visorRam,'neck'));
+
+/* skull: faceted shell + crown dome + crest */
+const skullGrp = new THREE.Group();
+skullGrp.position.set(0,1.745,0);
+headGrp.add(skullGrp);
+const skullCore = plate(0.20,0.19,0.215,0.05,M.shell);
+skullGrp.add(skullCore);
+const crown = dome(0.102, M.shell, 0.52);
+crown.position.y = 0.085; skullGrp.add(crown);
+const crest = plate(0.028,0.17,0.035,0.012,M.shellDk);
+crest.rotation.x = Math.PI/2; crest.position.set(0,0.105,-0.015); skullGrp.add(crest);
+/* brow ridge */
+const brow = plate(0.185,0.035,0.055,0.014,M.shellDk);
+brow.position.set(0,0.052,0.095); brow.rotation.x = 0.26; skullGrp.add(brow);
+/* cheek plates */
+[-1,1].forEach(s=>{
+  const cheek = plate(0.055,0.10,0.05,0.02,M.shell);
+  cheek.position.set(s*0.085,-0.035,0.082);
+  cheek.rotation.y = -s*0.38; cheek.rotation.z = s*0.1;
+  skullGrp.add(cheek);
+  /* ear pod */
+  const pod = cyl(0.028,0.032,0.035,M.shellDk,16);
+  pod.rotation.z = Math.PI/2; pod.position.set(s*0.105,0.005,-0.02);
+  skullGrp.add(pod);
+  const podVent = cyl(0.016,0.016,0.01,M.trim,12);
+  podVent.rotation.z = Math.PI/2; podVent.position.set(s*0.125,0.005,-0.02);
+  skullGrp.add(podVent);
+});
+/* jaw / chin plate */
+const jaw = plate(0.155,0.075,0.185,0.035,M.shellDk);
+jaw.position.set(0,-0.098,0.012); skullGrp.add(jaw);
+const chinVent = plate(0.09,0.022,0.02,0.008,M.trim);
+chinVent.position.set(0,-0.115,0.095); skullGrp.add(chinVent);
+/* visor slot */
+const visorMat = new THREE.MeshStandardMaterial({color:0x1b2733, metalness:0.5, roughness:0.12, transparent:true, opacity:0.88});
+const visor = plate(0.165,0.048,0.03,0.018,visorMat);
+visor.position.set(0,0.012,0.104); skullGrp.add(visor);
+reg(skullGrp,'helmet-shell');
+skullGrp.userData.explode = new THREE.Vector3(0,1,0);
+
+/* ================= ARMS ================= */
+function buildArm(side){
+  const s = side === 'L' ? -1 : 1;
+  const g = new THREE.Group(); frame.add(g);
+  limbGroups.push({g, dir:new THREE.Vector3(s,0.15,0)});
+
+  /* shoulder actuator stack */
+  const shAbd = cyl(0.07,0.07,0.105,M.actuator,22);
+  shAbd.rotation.z = Math.PI/2; shAbd.position.set(s*0.305,1.475,0);
+  g.add(part(shAbd,'shoulder'));
+  const shWorm = plate(0.075,0.09,0.085,0.02,M.metal);
+  shWorm.position.set(s*0.305,1.395,0);
+  g.add(part(shWorm,'shoulder'));
+  const shPitch = cyl(0.056,0.056,0.085,M.actuator,22);
+  shPitch.rotation.x = Math.PI/2; shPitch.position.set(s*0.305,1.315,0);
+  g.add(part(shPitch,'shoulder'));
+
+  /* pauldron: rondel cap + three lames */
+  const pld = new THREE.Group();
+  pld.position.set(s*0.312, 1.505, 0);
+  g.add(pld);
+  const rondel = dome(0.118, M.shell, 0.62);
+  rondel.position.y = 0.012; pld.add(rondel);
+  const rondelRim = new THREE.Mesh(new THREE.TorusGeometry(0.116,0.009,10,28), M.shellDk);
+  rondelRim.rotation.x = Math.PI/2; rondelRim.position.y = 0.008; pld.add(rondelRim);
+  for(let i=0;i<3;i++){
+    const lm = lame(0.108 + i*0.004, 0.013, 0.05, Math.PI*0.95, i%2?M.shellDk:M.shell);
+    lm.position.set(0, -0.022 - i*0.040, 0);
+    lm.rotation.y = Math.PI;
+    lm.scale.set(1, 1, 1 + i*0.06);
+    pld.add(lm);
+  }
+  const standoff = cyl(0.008,0.008,0.05,M.actuator,8);
+  standoff.position.set(-s*0.03,-0.03,0); pld.add(standoff);
+  reg(pld,'pauldron');
+  pld.userData.explode = new THREE.Vector3(s,0.6,0);
+
+  /* bicep cuff */
+  const bicep = cyl(0.062,0.055,0.20,M.shellDk,18);
+  bicep.position.set(s*0.305,1.185,0);
+  g.add(part(bicep,'forearm-shell'));
+  const bicepBand = new THREE.Mesh(new THREE.TorusGeometry(0.062,0.008,10,24), M.trim);
+  bicepBand.rotation.x = Math.PI/2; bicepBand.position.set(s*0.305,1.265,0);
+  g.add(part(bicepBand,'forearm-shell'));
+
+  /* elbow actuator + fluted couter */
+  const elbowBody = cyl(0.05,0.05,0.095,M.actuator,22);
+  elbowBody.rotation.z = Math.PI/2; elbowBody.position.set(s*0.305,1.04,0);
+  g.add(part(elbowBody,'elbow',new THREE.Vector3(s,0,0.6)));
+  const clutch = new THREE.Mesh(new THREE.TorusGeometry(0.054,0.011,10,22), M.metal);
+  clutch.rotation.y = Math.PI/2; clutch.position.set(s*0.357,1.04,0);
+  g.add(part(clutch,'elbow'));
+
+  const couter = new THREE.Group();
+  couter.position.set(s*0.305,1.04,0);
+  g.add(couter);
+  const cop = dome(0.082, M.shell, 0.75);
+  cop.rotation.z = -s*Math.PI/2; cop.position.x = s*0.015; couter.add(cop);
+  /* flutes */
+  for(let i=0;i<4;i++){
+    const fl = box(0.07,0.008,0.012,M.shellDk);
+    const a = -0.5 + i*0.33;
+    fl.position.set(s*0.03, Math.sin(a)*0.055, Math.cos(a)*0.055);
+    fl.rotation.x = -a;
+    couter.add(fl);
+  }
+  const couterLip = lame(0.078,0.012,0.045,Math.PI*1.1,M.shellDk);
+  couterLip.rotation.z = Math.PI/2; couterLip.position.set(s*0.02,-0.05,0);
+  couter.add(couterLip);
+  reg(couter,'elbow');
+
+  /* vambrace clamshell */
+  const vamb = new THREE.Group();
+  vamb.position.set(s*0.305,0.885,0);
+  g.add(vamb);
+  const vTop = lame(0.062,0.014,0.24,Math.PI*1.05,M.shell);
+  vTop.rotation.x = Math.PI/2; vTop.rotation.z = 0; vamb.add(vTop);
+  const vBot = lame(0.060,0.013,0.235,Math.PI*0.95,M.shellDk);
+  vBot.rotation.x = Math.PI/2; vBot.rotation.y = Math.PI; vamb.add(vBot);
+  const hingeLine = cyl(0.006,0.006,0.23,M.metal,8);
+  hingeLine.position.set(-s*0.062,0,0); vamb.add(hingeLine);
+  /* forearm fin */
+  const fin = plate(0.03,0.16,0.055,0.012,M.shellDk);
+  fin.rotation.y = Math.PI/2; fin.position.set(s*0.065,0.01,-0.03);
+  vamb.add(fin);
+  /* catches */
+  for(let i=0;i<3;i++){
+    const c = box(0.018,0.016,0.008,M.power);
+    c.position.set(s*0.058, 0.08 - i*0.08, 0.052);
+    vamb.add(c);
+  }
+  reg(vamb,'forearm-shell');
+  vamb.userData.explode = new THREE.Vector3(s,-0.2,0);
+
+  /* wrist */
+  const wristRing = cyl(0.056,0.056,0.034,M.metal,26);
+  wristRing.position.set(s*0.305,0.742,0);
+  g.add(part(wristRing,'wrist'));
+  const wristServo = plate(0.04,0.05,0.038,0.012,M.actuator);
+  wristServo.position.set(s*0.305,0.80,-0.058);
+  g.add(part(wristServo,'wrist',new THREE.Vector3(s,0,-0.6)));
+
+  /* gauntlet: back plate, knuckle plate, fingers */
+  const hand = new THREE.Group();
+  hand.position.set(s*0.305,0.665,0.005);
+  g.add(hand);
+  const palm = plate(0.085,0.10,0.045,0.022,M.shellDk);
+  hand.add(palm);
+  const backHand = plate(0.078,0.085,0.022,0.02,M.shell);
+  backHand.position.set(0,0.005,0.03); hand.add(backHand);
+  const knuckle = plate(0.082,0.028,0.03,0.012,M.shell);
+  knuckle.position.set(0,-0.046,0.018); hand.add(knuckle);
+  /* four fingers, two segments each */
+  for(let f=0;f<4;f++){
+    const fx = -0.030 + f*0.020;
+    for(let j=0;j<2;j++){
+      const seg = plate(0.017,0.028,0.018,0.007,j%2?M.shellDk:M.shell);
+      seg.position.set(fx, -0.072 - j*0.030, 0.012 - j*0.004);
+      seg.rotation.x = -0.12 - j*0.18;
+      hand.add(seg);
+    }
+  }
+  /* thumb */
+  const th1 = plate(0.019,0.026,0.019,0.008,M.shell);
+  th1.position.set(-s*0.042,-0.03,0.022); th1.rotation.z = s*0.6; hand.add(th1);
+  const th2 = plate(0.017,0.024,0.017,0.007,M.shellDk);
+  th2.position.set(-s*0.052,-0.054,0.026); th2.rotation.z = s*0.85; hand.add(th2);
+  reg(hand,'forearm-shell');
+  return g;
+}
+buildArm('L'); buildArm('R');
+
+/* ================= WAIST / PELVIS ================= */
+const waistGrp = new THREE.Group(); frame.add(waistGrp);
+const waistRing = cyl(0.192,0.192,0.048,M.metal,34);
+waistRing.position.set(0,0.995,0);
+waistGrp.add(part(waistRing,'waist',new THREE.Vector3(0,-0.4,0)));
+const slipRing = cyl(0.044,0.044,0.068,M.power,18);
+slipRing.position.set(0,0.995,0); waistGrp.add(part(slipRing,'waist'));
+const beltMotor = plate(0.07,0.07,0.085,0.018,M.actuator);
+beltMotor.position.set(0.14,0.995,-0.10); waistGrp.add(part(beltMotor,'waist'));
+const beltLoop = new THREE.Mesh(new THREE.TorusGeometry(0.14,0.008,8,30,Math.PI), M.trim);
+beltLoop.rotation.x = Math.PI/2; beltLoop.position.set(0.02,0.995,-0.05);
+waistGrp.add(part(beltLoop,'waist'));
+
+/* pelvic girdle */
+const girdle = plate(0.34,0.155,0.24,0.05,M.shell);
+girdle.position.set(0,0.905,0);
+waistGrp.add(part(girdle,'chest-shell'));
+
+/* belt + tassets */
+const beltGrp = new THREE.Group();
+beltGrp.position.set(0,0.945,0);
+waistGrp.add(beltGrp);
+const belt = lame(0.185,0.018,0.062,Math.PI*2,M.leather);
+beltGrp.add(belt);
+const buckle = plate(0.06,0.045,0.03,0.012,M.metal);
+buckle.position.set(0,0,0.19); beltGrp.add(buckle);
+[-1,1].forEach(s=>{
+  for(let i=0;i<2;i++){
+    const t = plate(0.115 - i*0.012, 0.115, 0.045, 0.03, i%2?M.shellDk:M.shell);
+    t.position.set(s*(0.11 + i*0.055), -0.085 - i*0.012, 0.045 - i*0.03);
+    t.rotation.y = -s*(0.35 + i*0.45);
+    t.rotation.z = s*0.08;
+    beltGrp.add(t);
+  }
+});
+reg(beltGrp,'tasset');
+beltGrp.userData.explode = new THREE.Vector3(0,-0.5,0.4);
+
+/* ================= LEGS ================= */
+function buildLeg(side){
+  const s = side === 'L' ? -1 : 1;
+  const g = new THREE.Group(); frame.add(g);
+  limbGroups.push({g, dir:new THREE.Vector3(s*0.8,-0.5,0)});
+
+  /* hip actuator */
+  const hipHarm = cyl(0.082,0.082,0.098,M.actuator,24);
+  hipHarm.rotation.z = Math.PI/2; hipHarm.position.set(s*0.145,0.845,0);
+  g.add(part(hipHarm,'hip',new THREE.Vector3(s,0,0)));
+  const hipWorm = plate(0.09,0.10,0.105,0.022,M.metal);
+  hipWorm.position.set(s*0.145,0.745,-0.02);
+  g.add(part(hipWorm,'hip'));
+
+  /* cuisse — four segmented thigh plates */
+  const cuisse = new THREE.Group();
+  g.add(cuisse);
+  for(let i=0;i<4;i++){
+    const w = 0.152 - i*0.009;
+    const seg = lame(w/2, 0.014, 0.088, Math.PI*1.25, i%2?M.shellDk:M.shell);
+    seg.position.set(s*0.145, 0.645 - i*0.085, 0);
+    seg.rotation.x = Math.PI/2;
+    cuisse.add(seg);
+  }
+  const tpuSpine = box(0.02,0.33,0.012,M.trim);
+  tpuSpine.position.set(s*0.145,0.52,-0.072); cuisse.add(tpuSpine);
+  reg(cuisse,'thigh-shell');
+  cuisse.userData.explode = new THREE.Vector3(s*0.7,-0.3,0);
+
+  /* knee: ball-screw + linkage + poleyn */
+  const screw = cyl(0.014,0.014,0.185,M.metal,12);
+  screw.position.set(s*0.145,0.455,0.072); screw.rotation.x = 0.22;
+  g.add(part(screw,'knee'));
+  const ram = plate(0.055,0.072,0.05,0.016,M.actuator);
+  ram.position.set(s*0.145,0.345,0.056);
+  g.add(part(ram,'knee',new THREE.Vector3(s*0.4,0,1)));
+  const kneeAxle = cyl(0.044,0.044,0.092,M.actuator,22);
+  kneeAxle.rotation.z = Math.PI/2; kneeAxle.position.set(s*0.145,0.30,0);
+  g.add(part(kneeAxle,'knee'));
+  const linkage = box(0.011,0.115,0.011,M.metal);
+  linkage.position.set(s*0.145,0.368,0.033); linkage.rotation.x = -0.3;
+  g.add(part(linkage,'knee'));
+
+  const poleyn = new THREE.Group();
+  poleyn.position.set(s*0.145,0.30,0.035);
+  g.add(poleyn);
+  const cop = dome(0.078, M.shell, 0.78);
+  cop.rotation.x = Math.PI/2; cop.position.z = 0.012; poleyn.add(cop);
+  const copRim = new THREE.Mesh(new THREE.TorusGeometry(0.076,0.008,10,26), M.shellDk);
+  poleyn.add(copRim);
+  /* side wing hiding the pivot */
+  const wing = plate(0.055,0.08,0.028,0.022,M.shellDk);
+  wing.rotation.y = Math.PI/2;
+  wing.position.set(s*0.062,-0.005,-0.02); poleyn.add(wing);
+  const lowerLame = lame(0.072,0.012,0.04,Math.PI*0.9,M.shell);
+  lowerLame.rotation.x = Math.PI/2; lowerLame.position.set(0,-0.055,-0.03);
+  poleyn.add(lowerLame);
+  reg(poleyn,'thigh-shell');
+
+  /* greave + flared calf */
+  const greave = new THREE.Group();
+  g.add(greave);
+  for(let i=0;i<3;i++){
+    const r = 0.068 - i*0.006;
+    const seg = lame(r, 0.013, 0.082, Math.PI*1.0, i%2?M.shell:M.shellDk);
+    seg.position.set(s*0.145, 0.215 - i*0.078, 0.012);
+    seg.rotation.x = Math.PI/2;
+    greave.add(seg);
+  }
+  const calf = plate(0.105,0.17,0.04,0.035,M.shellDk);
+  calf.position.set(s*0.145,0.185,-0.062); calf.rotation.x = -0.1;
+  greave.add(calf);
+  const calfFlare = plate(0.075,0.06,0.03,0.022,M.shell);
+  calfFlare.position.set(s*0.145,0.255,-0.075); calfFlare.rotation.x = -0.5;
+  greave.add(calfFlare);
+  reg(greave,'thigh-shell');
+
+  /* ankle gimbal + shin-mounted motors */
+  const shinMotor = plate(0.05,0.058,0.046,0.014,M.actuator);
+  shinMotor.position.set(s*0.145,0.235,-0.068);
+  g.add(part(shinMotor,'ankle',new THREE.Vector3(s*0.4,0,-1)));
+  const gimbal = sph(0.052,M.actuator);
+  gimbal.scale.set(1,0.82,1); gimbal.position.set(s*0.145,0.068,0);
+  g.add(part(gimbal,'ankle'));
+  [-1,1].forEach(o=>{
+    const cable = cyl(0.0055,0.0055,0.16,M.wire,8);
+    cable.position.set(s*0.145 + o*0.033, 0.152, -0.042);
+    g.add(part(cable,'ankle'));
+  });
+
+  /* sabaton: ground plate, heel, instep, three toe lames */
+  const foot = new THREE.Group();
+  foot.position.set(s*0.145,0,0);
+  g.add(foot);
+  const plateG = plate(0.168,0.018,0.29,0.02,M.metal);
+  plateG.rotation.x = Math.PI/2; plateG.position.set(0,0.016,0.045);
+  foot.add(plateG);
+  const heel = plate(0.145,0.085,0.10,0.03,M.shellDk);
+  heel.position.set(0,0.062,-0.058); foot.add(heel);
+  const instep = plate(0.158,0.075,0.12,0.032,M.shell);
+  instep.position.set(0,0.065,0.045); instep.rotation.x = -0.08; foot.add(instep);
+  for(let i=0;i<3;i++){
+    const toe = lame(0.072 - i*0.006, 0.012, 0.145 - i*0.012, Math.PI*0.75, i%2?M.shellDk:M.shell);
+    toe.rotation.z = Math.PI/2; toe.rotation.y = Math.PI/2;
+    toe.position.set(0, 0.052 - i*0.004, 0.125 + i*0.032);
+    foot.add(toe);
+  }
+  const sole = plate(0.172,0.022,0.30,0.025,M.trim);
+  sole.rotation.x = Math.PI/2; sole.position.set(0,0.006,0.045);
+  foot.add(sole);
+  reg(foot,'boot');
+  foot.userData.explode = new THREE.Vector3(s*0.5,-1,0.3);
+  return g;
+}
+buildLeg('L'); buildLeg('R');
+
+/* ---- power harness ---- */
+const harness = new THREE.Group(); harness.visible = false; scene.add(harness);
+const packPt = new THREE.Vector3(0,1.18,-0.20);
+const runs = [
+  [new THREE.Vector3(0,1.32,-0.15), new THREE.Vector3(0.22,1.47,-0.08), new THREE.Vector3(0.305,1.46,0)],
+  [new THREE.Vector3(0,1.32,-0.15), new THREE.Vector3(-0.22,1.47,-0.08), new THREE.Vector3(-0.305,1.46,0)],
+  [new THREE.Vector3(0.20,1.39,-0.08), new THREE.Vector3(0.30,1.21,-0.05), new THREE.Vector3(0.305,1.05,-0.03)],
+  [new THREE.Vector3(-0.20,1.39,-0.08), new THREE.Vector3(-0.30,1.21,-0.05), new THREE.Vector3(-0.305,1.05,-0.03)],
+  [new THREE.Vector3(0,1.06,-0.14), new THREE.Vector3(0,1.00,-0.06), new THREE.Vector3(0,0.995,0)],
+  [new THREE.Vector3(0.05,1.03,-0.14), new THREE.Vector3(0.14,0.93,-0.10), new THREE.Vector3(0.145,0.83,-0.04)],
+  [new THREE.Vector3(-0.05,1.03,-0.14), new THREE.Vector3(-0.14,0.93,-0.10), new THREE.Vector3(-0.145,0.83,-0.04)],
+  [new THREE.Vector3(0.145,0.78,-0.07), new THREE.Vector3(0.168,0.55,-0.09), new THREE.Vector3(0.145,0.35,-0.06)],
+  [new THREE.Vector3(-0.145,0.78,-0.07), new THREE.Vector3(-0.168,0.55,-0.09), new THREE.Vector3(-0.145,0.35,-0.06)],
+  [new THREE.Vector3(0,1.27,-0.17), new THREE.Vector3(0,1.38,-0.06), new THREE.Vector3(0,1.44,0.10)]
+];
+runs.forEach(pts=>{
+  const curve = new THREE.CatmullRomCurve3([packPt.clone(), ...pts]);
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 36, 0.0085, 8, false), M.wire);
+  harness.add(part(tube,'bus'));
+});
+
+/* ---------------------------- INTERACTION ----------------------------- */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hovered = null, selected = null;
+const tip = document.getElementById('tip');
+
+function applyTint(id, color, intensity){
+  clickable.forEach(m=>{
+    if (m.userData.partId !== id) return;
+    if (!m.userData._mat){ m.userData._origMat = m.material; m.userData._mat = m.material.clone(); }
+    m.material = m.userData._mat;
+    if (m.material.emissive){ m.material.emissive.set(color); m.material.emissiveIntensity = intensity; }
+  });
+}
+function clearTint(id){
+  clickable.forEach(m=>{ if (m.userData.partId === id && m.userData._origMat) m.material = m.userData._origMat; });
+}
+function refreshTints(){
+  new Set(clickable.map(m=>m.userData.partId)).forEach(id=>{
+    if (id === selected) applyTint(id, 0x12b3a6, 0.75);
+    else if (id === hovered) applyTint(id, 0x12b3a6, 0.30);
+    else clearTint(id);
+  });
+}
+function pick(ev){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((ev.clientX - r.left)/r.width)*2 - 1;
+  pointer.y = -((ev.clientY - r.top)/r.height)*2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(clickable, false);
+  return hit.length ? hit[0].object.userData.partId : null;
+}
+renderer.domElement.addEventListener('pointermove', ev=>{
+  if (drag.active){ tip.style.opacity = 0; return; }
+  const id = pick(ev);
+  if (id !== hovered){ hovered = id; refreshTints(); renderer.domElement.style.cursor = id ? 'pointer' : 'grab'; }
+  if (id && DB[id]){
+    tip.textContent = DB[id].name;
+    tip.style.left = (ev.clientX + 14)+'px'; tip.style.top = (ev.clientY - 10)+'px';
+    tip.style.opacity = 1;
+  } else tip.style.opacity = 0;
+});
+renderer.domElement.addEventListener('pointerleave', ()=>{ tip.style.opacity=0; hovered=null; refreshTints(); });
+renderer.domElement.addEventListener('click', ev=>{
+  if (drag.moved) return;
+  const id = pick(ev);
+  if (id && DB[id]) selectPart(id);
+});
+
+/* ------------------------- CAMERA / ORBIT ----------------------------- */
+const cam = {theta:0.55, phi:1.26, dist:4.3, target:new THREE.Vector3(0,1.02,0)};
+const HOME = {theta:0.55, phi:1.26, dist:4.3, ty:1.02};
+function updateCamera(){
+  const r = cam.dist, sp = Math.sin(cam.phi);
+  camera.position.set(
+    cam.target.x + r*sp*Math.sin(cam.theta),
+    cam.target.y + r*Math.cos(cam.phi),
+    cam.target.z + r*sp*Math.cos(cam.theta));
+  camera.lookAt(cam.target);
+}
+const drag = {active:false, moved:false, x:0, y:0, btn:0};
+renderer.domElement.addEventListener('pointerdown', e=>{
+  drag.active=true; drag.moved=false; drag.x=e.clientX; drag.y=e.clientY; drag.btn=e.button;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointerup', e=>{
+  drag.active=false;
+  try{ renderer.domElement.releasePointerCapture(e.pointerId); }catch(_){}
+  setTimeout(()=>{ drag.moved=false; },0);
+});
+renderer.domElement.addEventListener('pointermove', e=>{
+  if (!drag.active) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if (Math.abs(dx)+Math.abs(dy) > 4){ drag.moved=true; state.spin=false; syncButtons(); }
+  drag.x=e.clientX; drag.y=e.clientY;
+  if (drag.btn===2 || e.shiftKey){
+    cam.target.y = Math.max(0.2, Math.min(2.0, cam.target.y + dy*0.004));
+  } else {
+    cam.theta -= dx*0.006;
+    cam.phi = Math.max(0.25, Math.min(Math.PI-0.15, cam.phi + dy*0.005));
+  }
+  updateCamera();
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  cam.dist = Math.max(1.2, Math.min(11, cam.dist + e.deltaY*0.0022));
+  updateCamera();
+}, {passive:false});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+
+/* ---------------------------- TOGGLE STATE ---------------------------- */
+const state = {explode:false, lamp:true, wiring:false, xray:false, spin:false};
+let explodeAmt = 0;
+function syncButtons(){
+  document.querySelectorAll('.tbtn').forEach(b=>{
+    const a=b.dataset.act; if (a in state) b.classList.toggle('on', !!state[a]);
+  });
+}
+document.querySelectorAll('.tbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const a = btn.dataset.act;
+    if (a==='reset'){
+      cam.theta=HOME.theta; cam.phi=HOME.phi; cam.dist=HOME.dist; cam.target.set(0,HOME.ty,0);
+      updateCamera(); return;
+    }
+    state[a] = !state[a];
+    if (a==='lamp') setLamp(state.lamp);
+    if (a==='wiring') harness.visible = state.wiring;
+    if (a==='xray') setXray(state.xray);
+    syncButtons();
+  });
+});
+function setLamp(on){
+  beam.intensity = on ? 1.5 : 0;
+  bounce.intensity = on ? 0.5 : 0;
+  cone.visible = on;
+  M.glow.emissiveIntensity = on ? 1.5 : 0.04;
+}
+function setXray(on){
+  const apply = m=>{
+    m.transparent = on; m.opacity = on ? 0.20 : 1;
+    m.depthWrite = !on; m.needsUpdate = true;
+  };
+  [M.shell, M.shellDk, M.trim, M.leather].forEach(apply);
+  clickable.forEach(mesh=>{
+    const o = mesh.userData._origMat;
+    if (mesh.userData._mat && (o===M.shell||o===M.shellDk||o===M.trim||o===M.leather)) apply(mesh.userData._mat);
+  });
+}
+
+/* ------------------------------ SIDEBAR ------------------------------- */
+const bodyEl = document.getElementById('body');
+let tab = 'parts';
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    tab = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x===t));
+    render();
+  });
+});
+function selectPart(id){
+  selected = id; refreshTints(); tab='detail';
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x.dataset.tab==='detail'));
+  render();
+}
+function renderParts(){
+  let html='';
+  GROUP_ORDER.forEach(gr=>{
+    html += `<div class="group-label">${gr}</div><div class="plist">`;
+    Object.keys(DB).filter(k=>DB[k].group===gr).forEach(k=>{
+      const p=DB[k];
+      html += `<div class="pitem${selected===k?' on':''}" data-part="${k}">
+        <span class="dot" style="background:${p.color}"></span>
+        <span>${p.name}</span><span class="qty">${p.qty}</span></div>`;
+    });
+    html += '</div>';
+  });
+  return html;
+}
+function renderDetail(){
+  if (!selected) return `<div class="empty">Nothing selected yet.<br><br>Click a part in the 3D view, or pick one from the Parts list, to see its actuation, specs and build notes.</div>`;
+  const p = DB[selected];
+  return `<button class="backbtn" data-back>&larr; All parts</button>
+    <div class="d-head">
+      <div class="d-kicker">${p.kicker} · ${p.qty}</div>
+      <h2>${p.name}</h2><div class="sub">${p.sub}</div>
+      ${p.pills.map(x=>`<span class="pill">${x}</span>`).join('')}
+    </div>
+    <div class="sec"><h3>How it works</h3><p>${p.how}</p></div>
+    <div class="sec"><h3>Specifications</h3><table class="specs">
+      ${p.specs.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table></div>
+    <div class="sec"><h3>Build notes</h3><ul class="notes">
+      ${p.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
+}
+function renderPower(){
+  return `<div class="sec"><h3>Budget</h3><table class="specs">
+      <tr><td>Pack energy</td><td>142 Wh (14.8 V · 9.6 Ah)</td></tr>
+      <tr><td>Idle draw (all joints)</td><td>~2.1 A · 31 W</td></tr>
+      <tr><td>Lamp at full</td><td>0.57 A · 8.4 W</td></tr>
+      <tr><td>Logic + control</td><td>0.4 A · 6 W</td></tr>
+      <tr><td>Worst-case peak</td><td>38 A · 560 W (all joints moving)</td></tr>
+      <tr><td>Realistic posing</td><td>~113 W avg → ~75 min</td></tr>
+      <tr><td>Lamp only</td><td>~4 h</td></tr></table></div>
+    <div class="sec"><h3>Rails</h3><p>Three rails off one pack. The raw <code>16.8 V</code> rail feeds the shoulders, hips and knees. A <code>6 V / 20 A</code> buck feeds every smart servo — wrists, ankles, neck. A small <code>5 V / 3 A</code> rail runs logic, fans and the lamp driver. Never share a ground return between the motor rail and the logic rail; star-ground both at the pack.</p></div>
+    <div class="sec"><h3>Mass</h3><table class="specs">
+      <tr><td>Structure &amp; shell</td><td>8.6 kg</td></tr>
+      <tr><td>Actuators</td><td>6.4 kg</td></tr>
+      <tr><td>Battery &amp; electronics</td><td>1.8 kg</td></tr>
+      <tr><td>Total worn</td><td>~16.8 kg</td></tr></table>
+      <p style="margin-top:9px">Roughly 60% of that lands on the hips through the ground plates, not the shoulders — which is the whole reason the pack sits at the lumbar and the ankle motors sit in the shin.</p></div>
+    <div class="sec"><h3>Articulation count</h3><table class="specs">
+      <tr><td>Powered axes</td><td>14</td></tr>
+      <tr><td>Articulated lames</td><td>31 (gorget, ab, pauldron, toe)</td></tr>
+      <tr><td>Strap-hung plates</td><td>4 tassets</td></tr>
+      <tr><td>Finger segments</td><td>20</td></tr></table></div>
+    <div class="sec"><h3>Safety interlocks</h3><ul class="notes">
+      <li>Hard-wired e-stop cutting the pack rail, reachable with either hand.</li>
+      <li>Visor opens mechanically with zero power. Always.</li>
+      <li>Helmet fans interlocked to run whenever the visor is down.</li>
+      <li>IMU tilt cutoff past 25° kills all joint motion.</li>
+      <li>40 A fuse at pack positive, before anything else.</li>
+      <li>No joint moves without a spotter the first ten times it runs.</li></ul></div>`;
+}
+function render(){
+  if (tab==='parts') bodyEl.innerHTML = renderParts();
+  else if (tab==='detail') bodyEl.innerHTML = renderDetail();
+  else bodyEl.innerHTML = renderPower();
+  bodyEl.scrollTop = 0;
+  bodyEl.querySelectorAll('[data-part]').forEach(el=>{
+    el.addEventListener('click', ()=> selectPart(el.dataset.part));
+    el.addEventListener('mouseenter', ()=>{ hovered = el.dataset.part; refreshTints(); });
+    el.addEventListener('mouseleave', ()=>{ hovered = null; refreshTints(); });
+  });
+  const back = bodyEl.querySelector('[data-back]');
+  if (back) back.addEventListener('click', ()=>{
+    tab='parts';
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x.dataset.tab==='parts'));
+    render();
+  });
+}
+
+/* ------------------------------- LOOP --------------------------------- */
+function resize(){
+  const w=wrap.clientWidth, h=wrap.clientHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+}
+window.addEventListener('resize', resize);
+
+/* collect explodable objects (groups and meshes carrying a direction) */
+const explodables = [];
+frame.traverse(o=>{ if (o.userData && o.userData.explode) explodables.push(o); });
+
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t += 0.016;
+  const target = state.explode ? 1 : 0;
+  explodeAmt += (target - explodeAmt)*0.09;
+  limbGroups.forEach(l=>{ l.g.position.copy(l.dir).multiplyScalar(explodeAmt*0.30); });
+  explodables.forEach(o=>{
+    if (!o.userData._home) o.userData._home = o.position.clone();
+    o.position.copy(o.userData._home).addScaledVector(o.userData.explode, explodeAmt*0.17);
+  });
+  if (state.lamp){
+    M.glow.emissiveIntensity = 1.5 + Math.sin(t*2.3)*0.05;
+    beam.intensity = 1.45 + Math.sin(t*2.3)*0.06;
+    cone.material.opacity = 0.065 + Math.sin(t*1.7)*0.006;
+  }
+  if (state.spin){ cam.theta += 0.0035; updateCamera(); }
+  renderer.render(scene, camera);
+}
+
+resize(); updateCamera(); setLamp(true); syncButtons(); render(); animate();
+</script>
+</body>
+</html>

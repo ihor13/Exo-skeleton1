@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<!--
+  Exo Skeleton 1 — Entry Sequence viewer
+  Copyright 2026 The Exo Skeleton 1 Authors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exo Skeleton 1 — Entry Sequence</title>
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#141a22;
+    --panel-2:#1b232d;
+    --line:#28323f;
+    --txt:#dce4ee;
+    --dim:#8695a8;
+    --accent:#2fd3c4;
+    --accent-2:#e0a040;
+    --mono: ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;display:flex;overflow:hidden}
+
+  #stage{flex:1;position:relative;min-width:0}
+  #canvas-wrap{position:absolute;inset:0}
+  canvas{display:block}
+
+  #hud{position:absolute;top:16px;left:16px;pointer-events:none;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--dim)}
+  #hud b{display:block;font-size:15px;letter-spacing:.2em;color:var(--txt);margin-bottom:4px}
+  #phase-hud{position:absolute;top:16px;right:16px;text-align:right;pointer-events:none;font-family:var(--mono)}
+  #phase-hud .num{font-size:34px;letter-spacing:-.02em;color:var(--accent);line-height:1}
+  #phase-hud .nm{font-size:11px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin-top:5px}
+  #phase-hud .dir{font-size:10px;letter-spacing:.2em;color:var(--amber);margin-top:3px}
+
+  .label3d{
+    position:absolute;pointer-events:none;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;color:var(--accent);white-space:nowrap;transform:translate(-50%,-50%);
+    background:rgba(23,30,39,.93);padding:3px 7px;border-radius:5px;border:1px solid #1f4f4b;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+    opacity:0;transition:opacity .25s;
+  }
+
+  /* --------- transport --------- */
+  #transport{
+    position:absolute;left:16px;right:16px;bottom:14px;background:rgba(20,26,34,.95);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;backdrop-filter:blur(10px);
+    box-shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  #track-wrap{position:relative;height:44px;margin-bottom:10px}
+  #phasebar{position:absolute;top:0;left:0;right:0;height:20px;display:flex;gap:2px}
+  .pseg{flex:1;background:#1b232d;border-radius:3px;position:relative;cursor:pointer;
+    transition:background .15s;display:flex;align-items:center;overflow:hidden;min-width:0}
+  .pseg:hover{background:#242f3c}
+  .pseg.on{background:#15423f}
+  .pseg span{
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--dim);
+    text-transform:uppercase;white-space:nowrap;padding:0 6px;overflow:hidden;
+    text-overflow:ellipsis;min-width:0;
+  }
+  .pseg.on span{color:var(--accent)}
+  #scrub{
+    position:absolute;left:0;right:0;top:24px;width:100%;height:18px;-webkit-appearance:none;
+    appearance:none;background:transparent;margin:0;cursor:pointer;
+  }
+  #scrub::-webkit-slider-thumb{
+    -webkit-appearance:none;width:4px;height:22px;background:var(--accent);
+    border-radius:2px;box-shadow:0 0 10px rgba(47,211,196,.6);cursor:grab;
+  }
+  #scrub::-moz-range-thumb{width:4px;height:22px;background:var(--accent);border:none;border-radius:2px}
+
+  #ctrls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--dim);font-family:var(--mono);
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 11px;border-radius:7px;cursor:pointer;
+  }
+  .btn:hover{color:var(--txt);border-color:#2f3d4e}
+  .btn.on{background:var(--accent);color:#07120f;border-color:var(--accent)}
+  .btn.play{min-width:76px;color:var(--txt)}
+  .sep{width:1px;height:22px;background:var(--line);margin:0 3px}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-right:2px}
+  #tcode{font-family:var(--mono);font-size:11px;color:var(--accent);margin-left:auto;letter-spacing:.06em}
+
+  /* --------- sidebar --------- */
+  #side{width:380px;flex:0 0 380px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+  #side header{padding:16px 20px 13px;border-bottom:1px solid var(--line)}
+  #side header h1{margin:0;font-size:13px;letter-spacing:.22em;font-family:var(--mono);text-transform:uppercase}
+  #side header p{margin:6px 0 0;font-size:12px;line-height:1.5;color:var(--dim)}
+
+  #modes{display:flex;border-bottom:1px solid var(--line)}
+  .mode{flex:1;padding:11px 0;text-align:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+  .mode.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+  #body{flex:1;overflow-y:auto;padding:16px 20px 36px}
+  #body::-webkit-scrollbar{width:9px}
+  #body::-webkit-scrollbar-thumb{background:#2a3542;border-radius:9px}
+
+  .sec{margin-bottom:17px}
+  .sec h3{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin:0 0 7px}
+  .sec p{margin:0;font-size:13px;line-height:1.62;color:#c3cedc}
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase}
+  h2.title{margin:7px 0 10px;font-size:19px;letter-spacing:-.01em}
+
+  table.specs{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.specs td{padding:6px 0;border-bottom:1px solid #222b36;vertical-align:top}
+  table.specs td:first-child{color:var(--dim);width:46%;padding-right:10px}
+  table.specs td:last-child{font-family:var(--mono);font-size:11.5px}
+
+  ul.notes{margin:0;padding-left:17px;font-size:13px;line-height:1.6;color:#c3cedc}
+  ul.notes li{margin-bottom:5px}
+
+  .act{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:var(--panel-2);margin-bottom:4px;font-size:12.5px}
+  .act .bar{flex:0 0 46px;height:5px;background:#222b36;border-radius:3px;overflow:hidden}
+  .act .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .1s linear}
+  .act .nm{flex:1}
+  .act .val{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+  .act.idle{opacity:.38}
+  .act.idle .bar i{background:#4c5a6b}
+
+  .layer{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;background:var(--panel-2);margin-bottom:5px;cursor:pointer;border:1px solid transparent}
+  .layer:hover{border-color:#36465a}
+  .layer .sw{width:16px;height:16px;border-radius:4px;flex:0 0 16px;border:1px solid rgba(255,255,255,.14)}
+  .layer .t{font-size:12.5px}
+  .layer .t em{display:block;font-style:normal;font-size:11px;color:var(--dim);margin-top:2px}
+  .layer .th{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+
+  input[type=range].slim{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:3px;background:#222b36;outline:none;margin:10px 0 2px}
+  input[type=range].slim::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer}
+  input[type=range].slim::-moz-range-thumb{width:15px;height:15px;border:none;border-radius:50%;background:var(--accent);cursor:pointer}
+  .rlabel{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+
+  .warn{border-left:2px solid var(--red);padding:9px 0 9px 12px;font-size:12.5px;line-height:1.6;color:#d6b3ae;margin-top:12px}
+  .warn b{color:var(--red);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:4px}
+  code{font-family:var(--mono);font-size:11.5px;background:#10161e;padding:1px 5px;border-radius:4px;color:var(--amber)}
+
+  @media (max-width:920px){
+    body{flex-direction:column}
+    #side{width:100%;flex:0 0 44%;border-left:none;border-top:1px solid var(--line)}
+    #stage{flex:1 1 56%}
+    #transport{left:10px;right:10px}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="canvas-wrap"></div>
+  <div id="hud"><b>ENTRY SEQUENCE</b>EXO SKELETON 1 · DON / DOFF CYCLE</div>
+  <div id="phase-hud">
+    <div class="num" id="ph-num">00</div>
+    <div class="nm" id="ph-name">STANDBY</div>
+    <div class="dir" id="ph-dir">— HOLD —</div>
+  </div>
+
+  <div id="transport">
+    <div id="track-wrap">
+      <div id="phasebar"></div>
+      <input type="range" id="scrub" min="0" max="1000" value="0" />
+    </div>
+    <div id="ctrls">
+      <button class="btn play" id="btn-play">▶ Play</button>
+      <button class="btn" id="btn-dir">Opening</button>
+      <button class="btn on" id="btn-loop">Loop</button>
+      <div class="sep"></div>
+      <span class="tag">Speed</span>
+      <button class="btn" data-spd="0.15">0.15×</button>
+      <button class="btn" data-spd="0.35">0.35×</button>
+      <button class="btn on" data-spd="1">1×</button>
+      <button class="btn" data-spd="2">2×</button>
+      <div class="sep"></div>
+      <button class="btn" id="btn-step-b">◀ Step</button>
+      <button class="btn" id="btn-step-f">Step ▶</button>
+      <button class="btn" id="btn-env">Entry Volume</button>
+      <span id="tcode">T 0.000 · 0.0 s</span>
+    </div>
+  </div>
+</div>
+
+<aside id="side">
+  <header>
+    <h1>Sequence Reference</h1>
+    <p>Scrub, slow down or step through the cycle. Switch views to see the shell, the mechanism driving it, or how the front plate is layered.</p>
+  </header>
+  <div id="modes">
+    <div class="mode on" data-mode="shell">Shell</div>
+    <div class="mode" data-mode="mech">Mechanism</div>
+    <div class="mode" data-mode="front">Front Plate</div>
+  </div>
+  <div id="body"></div>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ==========================================================================
+   EXO SKELETON 1 — entry/exit sequence viewer
+   Original design. Single file, no assets.
+   ========================================================================== */
+
+/* ------------------------------ PHASES ---------------------------------- */
+const PHASES = [
+  { a:0.00, b:0.10, id:'latch', name:'Latch Release',
+    desc:'Six rotary latches around the torso back out of their strikers. Nothing moves yet — the shell is still closed, just no longer locked. Status ring goes amber the moment the last latch reports open, and it will not go green again until every one re-seats.',
+    act:[['Latch pins ×6','4 mm retract','0.8 A'],['Status ring','amber','0.2 A']] },
+  { a:0.10, b:0.30, id:'spine', name:'Dorsal Split',
+    desc:'The back plate is the structural keystone, so it moves first and alone. A gas strut assists a short ball-screw ram that walks the plate 220 mm aft and 50 mm up along two hardened rails. Until it clears, nothing on the front can rotate — the geometry is interlocked on purpose.',
+    act:[['Dorsal ram','220 mm','6.2 A'],['Gas strut','assist 180 N','—'],['Rail carriage','free','—']] },
+  { a:0.30, b:0.54, id:'chest', name:'Chest Clamshell',
+    desc:'The two front halves swing out on vertical hinges, each driven by its own four-bar linkage rather than a motor at the hinge pin. The linkage does the hard part: it holds the plate rigid at the closed position with no current, and the mechanical advantage is highest exactly there, where the seal needs clamping force.',
+    act:[['Clamshell ram L','145 mm','4.4 A'],['Clamshell ram R','145 mm','4.4 A'],['Lamp tilt servo','38°','0.6 A']] },
+  { a:0.54, b:0.72, id:'pelvis', name:'Pelvic Drop',
+    desc:'The pelvic apron rotates forward and down, and the thigh shells hinge outboard. This is the step that actually makes the frame enterable — before it, the hip opening is far too small to step through. The waist slip ring stays powered throughout so the torso never loses its data chain.',
+    act:[['Apron actuator','52°','3.1 A'],['Thigh hinge L','44°','2.2 A'],['Thigh hinge R','44°','2.2 A']] },
+  { a:0.72, b:0.88, id:'limbs', name:'Limb Shells',
+    desc:'Forearm clamshells hinge open and the pauldrons lift clear of the shoulder actuators. These are the lightest moves in the cycle and the only ones that can run in parallel with anything else — they are sequenced last simply because they are not load-bearing.',
+    act:[['Forearm lid L','96°','1.1 A'],['Forearm lid R','96°','1.1 A'],['Pauldron lift ×2','60 mm','1.4 A']] },
+  { a:0.88, b:1.00, id:'open', name:'Entry Hold',
+    desc:'Full open, and the frame holds here on mechanical detents rather than motor current — you do not want 38 A of hold current running while someone climbs into the thing. The entry volume is clear at this point: 540 mm wide at the shoulders, 420 mm at the hips.',
+    act:[['Detent locks','engaged','0 A'],['Hold current','none','0.4 A logic']] }
+];
+
+/* ------------------------- FRONT PLATE LAYERS --------------------------- */
+const LAYERS = [
+  { nm:'Paint & clear coat', sub:'2K urethane over filler primer', th:'0.3 mm', col:'#6d8a93',
+    note:'Colour goes on after the panel is fitted and the split line is final. Mask the parting edge and shoot it last, so the edge gets a clean break rather than a thick ragged build-up that chips the first time the shell closes on it.' },
+  { nm:'Outer skin', sub:'PETG, vac-formed or printed', th:'2.5 mm', col:'#aeb8c4',
+    note:'This layer carries no load. It is shaped purely for the look, and it is the only layer you remake when you change the design. Everything behind it stays.' },
+  { nm:'Gasket', sub:'EVA foam, 6 mm closed cell', th:'6.0 mm', col:'#4b5866',
+    note:'Compresses about 2 mm when the latches pull in. It is what makes the closed shell quiet — without it the two halves chatter against each other with every step.' },
+  { nm:'Sub-plate', sub:'2 mm 6061 aluminium', th:'2.0 mm', col:'#8d96a2',
+    note:'The structural layer. Hinge brackets, latch strikers and the linkage pickup all bolt here, never into the plastic skin. If you remember one thing from this view, make it this.' },
+  { nm:'Linkage & hardware', sub:'Four-bar, ram, latch strikers', th:'—', col:'#4f63a8',
+    note:'Four-bar linkage plus the ram. The geometry is set so the plate arrives at closed position travelling almost straight inward, not swinging — that is what lets the gasket seal evenly instead of pinching at one edge.' }
+];
+
+/* -------------------------------- SCENE --------------------------------- */
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef1f5);
+scene.fog = new THREE.Fog(0xeef1f5, 8, 20);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+wrap.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc3ccd6, 0.85));
+const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(4,6,5);   scene.add(key);
+const fill= new THREE.DirectionalLight(0xdfe8f5, 0.45); fill.position.set(-5,2.5,3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(0,3,-6);   scene.add(rim);
+const und = new THREE.DirectionalLight(0xe8eef6, 0.22); und.position.set(0,-4,1);  scene.add(und);
+
+const grid = new THREE.GridHelper(16, 32, 0xc6d0da, 0xdfe5ec);
+scene.add(grid);
+
+/* ------------------------------ MATERIALS ------------------------------- */
+const PROTO = {
+  shell:  new THREE.MeshStandardMaterial({color:0xaeb8c4, metalness:0.55, roughness:0.40}),
+  shellDk:new THREE.MeshStandardMaterial({color:0x5c6775, metalness:0.60, roughness:0.45}),
+  paint:  new THREE.MeshStandardMaterial({color:0x6d8a93, metalness:0.45, roughness:0.28}),
+  alu:    new THREE.MeshStandardMaterial({color:0x8d96a2, metalness:0.95, roughness:0.24}),
+  foam:   new THREE.MeshStandardMaterial({color:0x4b5866, metalness:0.05, roughness:0.95}),
+  mech:   new THREE.MeshStandardMaterial({color:0x4f63a8, metalness:0.80, roughness:0.30}),
+  rail:   new THREE.MeshStandardMaterial({color:0x8d96a2, metalness:0.95, roughness:0.2}),
+  amber:  new THREE.MeshStandardMaterial({color:0xcf8a2c, metalness:0.5, roughness:0.4, emissive:0xcf8a2c, emissiveIntensity:0.22}),
+  glow:   new THREE.MeshStandardMaterial({color:0xe8fffd, emissive:0x15c4b6, emissiveIntensity:1.5, roughness:0.3})
+};
+
+const REG = [];                    // every mesh, for layer/opacity handling
+function mk(geo, proto, layer){
+  const m = new THREE.Mesh(geo, proto.clone());
+  m.userData.layer = layer;
+  m.userData.baseOpacity = 1;
+  REG.push(m);
+  return m;
+}
+const BOX = (w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const CYL = (rt,rb,h,s)=>new THREE.CylinderGeometry(rt,rb,h,s||18);
+const SPH = (r)=>new THREE.SphereGeometry(r,20,14);
+/* curved lame — the workhorse shape of articulated plate armour */
+function lameMesh(r,w,arc,proto,layer){
+  const g = new THREE.CylinderGeometry(r,r,w,22,1,true,-arc/2,arc);
+  const m = mk(g, proto, layer);
+  m.material.side = THREE.DoubleSide;
+  return m;
+}
+function domeMesh(r,squash,proto,layer){
+  const m = mk(new THREE.SphereGeometry(r,18,12,0,Math.PI*2,0,Math.PI/2), proto, layer);
+  m.scale.y = squash;
+  return m;
+}
+
+/* ------------------------------- RIG ------------------------------------ */
+const root = new THREE.Group(); scene.add(root);
+
+/* ---- static inner frame (the cage the wearer steps into) ---- */
+const core = new THREE.Group(); root.add(core);
+
+const spineCol = mk(BOX(0.075, 0.52, 0.075), PROTO.alu, 'frame');
+spineCol.position.set(0, 1.30, -0.095); core.add(spineCol);
+
+[-1,1].forEach(s=>{
+  const rib = mk(BOX(0.018, 0.30, 0.018), PROTO.alu, 'frame');
+  rib.position.set(s*0.175, 1.34, -0.03); core.add(rib);
+  const ring = mk(new THREE.TorusGeometry(0.175, 0.012, 8, 28, Math.PI), PROTO.alu, 'frame');
+  ring.rotation.x = Math.PI/2; ring.rotation.z = Math.PI;
+  ring.position.set(0, 1.18 + (s>0?0.30:0), 0); core.add(ring);
+});
+
+const waistRing = mk(CYL(0.195,0.195,0.05,32), PROTO.rail, 'frame');
+waistRing.position.set(0, 0.99, 0); core.add(waistRing);
+const slipRing = mk(CYL(0.045,0.045,0.07,16), PROTO.amber, 'mech');
+slipRing.position.set(0, 0.99, 0); core.add(slipRing);
+
+/* dorsal rails the back plate rides on */
+[-1,1].forEach(s=>{
+  const rail = mk(CYL(0.012,0.012,0.44,12), PROTO.rail, 'mech');
+  rail.position.set(s*0.085, 1.33, -0.13); rail.rotation.x = -0.18; core.add(rail);
+});
+
+/* battery stays with the core */
+const pack = mk(BOX(0.30,0.22,0.10), PROTO.shellDk, 'frame');
+pack.position.set(0, 1.14, -0.145); core.add(pack);
+for(let i=0;i<4;i++){
+  const c = mk(CYL(0.026,0.026,0.19,12), PROTO.amber, 'mech');
+  c.position.set(-0.096+i*0.064, 1.14, -0.135); core.add(c);
+}
+
+/* legs + arms structure (static) */
+function limbStruct(){
+  [-1,1].forEach(s=>{
+    const hip = mk(CYL(0.08,0.08,0.095,20), PROTO.mech, 'mech');
+    hip.rotation.z = Math.PI/2; hip.position.set(s*0.145,0.84,0); core.add(hip);
+    const thighBone = mk(CYL(0.045,0.04,0.40,14), PROTO.alu, 'frame');
+    thighBone.position.set(s*0.145,0.60,0); core.add(thighBone);
+    const knee = mk(CYL(0.045,0.045,0.09,18), PROTO.mech, 'mech');
+    knee.rotation.z = Math.PI/2; knee.position.set(s*0.145,0.33,0); core.add(knee);
+    const shinBone = mk(CYL(0.04,0.035,0.33,14), PROTO.alu, 'frame');
+    shinBone.position.set(s*0.145,0.17,0); core.add(shinBone);
+    const plate = mk(BOX(0.17,0.02,0.30), PROTO.rail, 'frame');
+    plate.position.set(s*0.145,0.02,0.045); core.add(plate);
+    const boot = mk(BOX(0.168,0.058,0.20), PROTO.shell, 'shell');
+    boot.position.set(s*0.145,0.058,-0.01); core.add(boot);
+    for(let i=0;i<3;i++){
+      const toe = lameMesh(0.068 - i*0.005, 0.135 - i*0.012, Math.PI*0.75,
+                           i%2?PROTO.shellDk:PROTO.shell, 'shell');
+      toe.rotation.z = Math.PI/2;
+      toe.position.set(s*0.145, 0.052 - i*0.003, 0.105 + i*0.03);
+      core.add(toe);
+    }
+
+    const sh = mk(CYL(0.07,0.07,0.105,20), PROTO.mech, 'mech');
+    sh.rotation.z = Math.PI/2; sh.position.set(s*0.305,1.48,0); core.add(sh);
+    const upper = mk(CYL(0.05,0.045,0.25,14), PROTO.alu, 'frame');
+    upper.position.set(s*0.305,1.18,0); core.add(upper);
+    const elb = mk(CYL(0.05,0.05,0.095,18), PROTO.mech, 'mech');
+    elb.rotation.z = Math.PI/2; elb.position.set(s*0.305,1.03,0); core.add(elb);
+    const fore = mk(CYL(0.042,0.038,0.24,14), PROTO.alu, 'frame');
+    fore.position.set(s*0.305,0.89,0); core.add(fore);
+    const hand = mk(BOX(0.09,0.12,0.05), PROTO.shellDk, 'shell');
+    hand.position.set(s*0.305,0.655,0); core.add(hand);
+  });
+}
+limbStruct();
+
+/* ---- MOVING ASSEMBLIES ---- */
+const RIG = {};
+
+/* latches */
+RIG.latches = [];
+const latchPos = [[0.21,1.50],[-0.21,1.50],[0.21,1.30],[-0.21,1.30],[0.17,1.10],[-0.17,1.10]];
+latchPos.forEach(p=>{
+  const g = new THREE.Group();
+  const pin = mk(CYL(0.013,0.013,0.05,12), PROTO.amber, 'mech');
+  pin.rotation.z = Math.PI/2; g.add(pin);
+  const striker = mk(new THREE.TorusGeometry(0.022,0.006,8,16), PROTO.rail, 'mech');
+  striker.rotation.y = Math.PI/2; striker.position.x = p[0]>0 ? 0.03 : -0.03; g.add(striker);
+  g.position.set(p[0], p[1], 0.06);
+  g.userData.sign = Math.sign(p[0]);
+  core.add(g); RIG.latches.push(g);
+});
+
+/* dorsal back plate */
+RIG.dorsal = new THREE.Group(); root.add(RIG.dorsal);
+const backPlate = mk(BOX(0.42,0.46,0.07), PROTO.shell, 'shell');
+backPlate.position.set(0,1.32,-0.175); RIG.dorsal.add(backPlate);
+const backSpine = mk(BOX(0.09,0.48,0.04), PROTO.shellDk, 'shell');
+backSpine.position.set(0,1.32,-0.215); RIG.dorsal.add(backSpine);
+const dorsalRam = mk(CYL(0.014,0.014,0.17,10), PROTO.mech, 'mech');
+dorsalRam.rotation.x = Math.PI/2 - 0.18; dorsalRam.position.set(0.06,1.33,-0.155);
+RIG.dorsal.add(dorsalRam);
+const strut = mk(CYL(0.011,0.011,0.20,10), PROTO.rail, 'mech');
+strut.rotation.x = Math.PI/2 - 0.3; strut.position.set(-0.06,1.30,-0.15);
+RIG.dorsal.add(strut);
+RIG.dorsal.userData.home = {y:1.0, z:0};
+
+/* chest clamshell halves (hinged at outer edge) + layered front plate */
+RIG.chest = [];
+[-1,1].forEach(s=>{
+  const hinge = new THREE.Group();
+  hinge.position.set(s*0.245, 1.33, 0.03);          // hinge axis, outer edge
+  root.add(hinge);
+
+  /* layered construction — offsets are reused by the peel slider */
+  const halfW = 0.225, halfH = 0.42;
+  const defs = [
+    {geo:BOX(halfW,halfH,0.004), proto:PROTO.paint,  z:0.128, layer:'front', li:0},
+    {geo:BOX(halfW,halfH,0.016), proto:PROTO.shell,  z:0.114, layer:'front', li:1},
+    {geo:BOX(halfW*0.93,halfH*0.93,0.012), proto:PROTO.foam, z:0.098, layer:'front', li:2},
+    {geo:BOX(halfW*0.96,halfH*0.96,0.008), proto:PROTO.alu,  z:0.086, layer:'front', li:3}
+  ];
+  const stack = [];
+  defs.forEach(d=>{
+    const m = mk(d.geo, d.proto, d.layer);
+    m.position.set(-s*halfW/2 + s*0.005, 0, d.z);
+    m.userData.layerIndex = d.li;
+    m.userData.homeZ = d.z;
+    hinge.add(m); stack.push(m);
+  });
+
+  /* shaped pectoral + abdominal lames on the outer face */
+  const pecDome = domeMesh(0.098, 0.40, PROTO.paint, 'front');
+  pecDome.rotation.x = Math.PI/2;
+  pecDome.position.set(-s*halfW/2 + s*0.005, 0.085, 0.130);
+  pecDome.userData.layerIndex = 0; pecDome.userData.homeZ = 0.130;
+  hinge.add(pecDome); stack.push(pecDome);
+  for(let i=0;i<3;i++){
+    const ab = mk(BOX(0.195 - i*0.012, 0.044, 0.022), i%2?PROTO.shellDk:PROTO.shell, 'front');
+    ab.position.set(-s*halfW/2 + s*0.005, -0.095 - i*0.052, 0.126 - i*0.005);
+    ab.rotation.x = 0.09 + i*0.02;
+    ab.userData.layerIndex = 1; ab.userData.homeZ = 0.126 - i*0.005;
+    hinge.add(ab); stack.push(ab);
+  }
+  const edgeTrim = mk(BOX(0.018, halfH*0.96, 0.03), PROTO.alu, 'front');
+  edgeTrim.position.set(s*0.005, 0, 0.122);
+  edgeTrim.userData.layerIndex = 3; edgeTrim.userData.homeZ = 0.122;
+  hinge.add(edgeTrim); stack.push(edgeTrim);
+
+  /* four-bar linkage behind the plate */
+  const armA = mk(BOX(0.012,0.10,0.012), PROTO.mech, 'mech');
+  armA.position.set(-s*0.06, 0.09, 0.055); armA.rotation.z = s*0.5;
+  hinge.add(armA); armA.userData.layerIndex = 4;
+  const armB = mk(BOX(0.012,0.09,0.012), PROTO.mech, 'mech');
+  armB.position.set(-s*0.06,-0.09, 0.055); armB.rotation.z = -s*0.5;
+  hinge.add(armB); armB.userData.layerIndex = 4;
+  const ram = mk(CYL(0.013,0.013,0.13,10), PROTO.mech, 'mech');
+  ram.rotation.x = Math.PI/2; ram.rotation.z = s*0.35;
+  ram.position.set(-s*0.09, 0, 0.03);
+  hinge.add(ram); ram.userData.layerIndex = 4;
+  const pivot = mk(CYL(0.016,0.016,0.05,12), PROTO.rail, 'mech');
+  pivot.rotation.x = Math.PI/2; pivot.position.set(0,0,0.02);
+  hinge.add(pivot); pivot.userData.layerIndex = 4;
+
+  hinge.userData.sign = s;
+  hinge.userData.stack = stack;
+  RIG.chest.push(hinge);
+});
+
+/* sternum lamp — rides on the left half */
+RIG.lamp = new THREE.Group();
+RIG.lamp.position.set(-0.112, 0, 0.135);
+RIG.chest[0].add(RIG.lamp);
+const lampHousing = mk(CYL(0.095,0.105,0.055,26), PROTO.rail, 'front');
+lampHousing.rotation.x = Math.PI/2; RIG.lamp.add(lampHousing);
+const lampLens = mk(CYL(0.082,0.082,0.012,26), PROTO.glow, 'glow');
+lampLens.rotation.x = Math.PI/2; lampLens.position.z = 0.032; RIG.lamp.add(lampLens);
+for(let i=0;i<10;i++){
+  const a = i/10*Math.PI*2;
+  const led = mk(CYL(0.008,0.008,0.008,8), PROTO.glow, 'glow');
+  led.rotation.x = Math.PI/2;
+  led.position.set(Math.cos(a)*0.055, Math.sin(a)*0.055, 0.022);
+  RIG.lamp.add(led);
+}
+const beam = new THREE.SpotLight(0xffffff, 1.2, 7, Math.PI/5, 0.6, 1.5);
+beam.position.set(0,1.35,0.3);
+const bt = new THREE.Object3D(); bt.position.set(0,1.1,6); scene.add(bt); beam.target = bt;
+scene.add(beam);
+
+/* pelvic apron */
+RIG.apron = new THREE.Group();
+RIG.apron.position.set(0, 0.96, 0.03);
+root.add(RIG.apron);
+const apronPlate = mk(BOX(0.34,0.17,0.06), PROTO.shell, 'shell');
+apronPlate.position.set(0,-0.075,0.07); RIG.apron.add(apronPlate);
+/* four strap-hung tassets */
+[-1,1].forEach(ts=>{
+  for(let i=0;i<2;i++){
+    const t = mk(BOX(0.105-i*0.012, 0.105, 0.035), i%2?PROTO.shellDk:PROTO.shell, 'shell');
+    t.position.set(ts*(0.105+i*0.05), -0.14 - i*0.015, 0.055 - i*0.03);
+    t.rotation.y = -ts*(0.35+i*0.45);
+    RIG.apron.add(t);
+  }
+});
+const apronRam = mk(CYL(0.012,0.012,0.11,10), PROTO.mech, 'mech');
+apronRam.rotation.x = 0.7; apronRam.position.set(0.11,-0.04,0.02); RIG.apron.add(apronRam);
+
+/* thigh shells */
+RIG.thighs = [];
+[-1,1].forEach(s=>{
+  const g = new THREE.Group();
+  g.position.set(s*0.145, 0.70, 0);
+  root.add(g);
+  for(let i=0;i<3;i++){
+    const seg = mk(BOX(0.14-i*0.008,0.10,0.145-i*0.006), i%2?PROTO.shellDk:PROTO.shell, 'shell');
+    seg.position.set(s*0.075, -0.06 - i*0.11, 0);
+    g.add(seg);
+  }
+  const hingeRod = mk(CYL(0.009,0.009,0.34,10), PROTO.mech, 'mech');
+  hingeRod.position.set(0,-0.17,-0.055); g.add(hingeRod);
+  g.userData.sign = s;
+  RIG.thighs.push(g);
+});
+
+/* shin shells (static cover, open slightly with thighs) */
+[-1,1].forEach(s=>{
+  for(let i=0;i<2;i++){
+    const seg = mk(BOX(0.125,0.085,0.125), i%2?PROTO.shell:PROTO.shellDk, 'shell');
+    seg.position.set(s*0.145, 0.21-i*0.085, 0);
+    core.add(seg);
+  }
+});
+
+/* forearm clamshell lids */
+RIG.lids = [];
+[-1,1].forEach(s=>{
+  const g = new THREE.Group();
+  g.position.set(s*0.305, 0.89, -0.055);
+  root.add(g);
+  const lid = mk(BOX(0.11,0.25,0.055), PROTO.shell, 'shell');
+  lid.position.set(0,0,0.085); g.add(lid);
+  const hingeLine = mk(CYL(0.006,0.006,0.24,8), PROTO.rail, 'mech');
+  g.add(hingeLine);
+  const magnet = mk(BOX(0.02,0.02,0.008), PROTO.amber, 'mech');
+  magnet.position.set(0,0.09,0.112); g.add(magnet);
+  g.userData.sign = s;
+  RIG.lids.push(g);
+});
+/* lower forearm half stays put */
+[-1,1].forEach(s=>{
+  const half = mk(BOX(0.11,0.25,0.055), PROTO.shellDk, 'shell');
+  half.position.set(s*0.305,0.89,0.028); core.add(half);
+});
+
+/* pauldrons */
+RIG.pauldrons = [];
+[-1,1].forEach(s=>{
+  const g = new THREE.Group();
+  g.position.set(s*0.315, 1.50, 0);
+  root.add(g);
+  const p = domeMesh(0.122, 0.62, PROTO.shell, 'shell');
+  p.position.y = 0.012; g.add(p);
+  /* three fanning lames under the rondel cap */
+  for(let i=0;i<3;i++){
+    const lm = lameMesh(0.108+i*0.004, 0.048, Math.PI*0.95, i%2?PROTO.shellDk:PROTO.shell, 'shell');
+    lm.rotation.y = Math.PI;
+    lm.position.set(0, -0.022 - i*0.040, 0);
+    g.add(lm);
+  }
+  const standoff = mk(CYL(0.007,0.007,0.05,8), PROTO.mech, 'mech');
+  standoff.position.set(-s*0.03,-0.05,0); g.add(standoff);
+  g.userData.sign = s;
+  RIG.pauldrons.push(g);
+});
+
+/* helmet */
+RIG.helmet = new THREE.Group();
+RIG.helmet.position.set(0,1.70,0);
+root.add(RIG.helmet);
+const skull = mk(BOX(0.21,0.21,0.24), PROTO.shell, 'shell');
+RIG.helmet.add(skull);
+const jaw = mk(BOX(0.17,0.08,0.20), PROTO.shellDk, 'shell');
+jaw.position.set(0,-0.095,0.015); RIG.helmet.add(jaw);
+const visorMat = new THREE.MeshStandardMaterial({color:0x1b2733, metalness:0.5, roughness:0.12, transparent:true, opacity:0.88});
+const visor = mk(BOX(0.175,0.055,0.03), visorMat, 'shell');
+visor.userData.baseOpacity = 0.85;
+visor.position.set(0,0.015,0.118); RIG.helmet.add(visor);
+const neckRing = mk(CYL(0.085,0.085,0.05,20), PROTO.rail, 'mech');
+neckRing.position.set(0,-0.115,0); RIG.helmet.add(neckRing);
+/* gorget: three overlapping neck lames */
+for(let i=0;i<3;i++){
+  const lm = lameMesh(0.105+i*0.016, 0.038, Math.PI*1.35, i?PROTO.shell:PROTO.shellDk, 'shell');
+  lm.rotation.y = Math.PI;
+  lm.position.set(0, -0.145 - i*0.028, 0.004);
+  RIG.helmet.add(lm);
+}
+/* brow ridge + cheek plates so the helmet reads as a helmet */
+const brow = mk(BOX(0.185,0.03,0.05), PROTO.shellDk, 'shell');
+brow.position.set(0,0.055,0.095); brow.rotation.x = 0.26; RIG.helmet.add(brow);
+[-1,1].forEach(cs=>{
+  const cheek = mk(BOX(0.05,0.095,0.05), PROTO.shell, 'shell');
+  cheek.position.set(cs*0.082,-0.038,0.08); cheek.rotation.y = -cs*0.38;
+  RIG.helmet.add(cheek);
+});
+const crest = mk(BOX(0.026,0.035,0.17), PROTO.shellDk, 'shell');
+crest.position.set(0,0.105,-0.015); RIG.helmet.add(crest);
+
+/* status ring on the chest core */
+const statusRing = mk(new THREE.TorusGeometry(0.055,0.008,10,30), PROTO.glow, 'glow');
+statusRing.position.set(0,1.46,-0.06); core.add(statusRing);
+
+/* entry volume (no figure — just the clearance envelope) */
+const env = new THREE.Group(); env.visible = false; scene.add(env);
+const envMat = new THREE.LineBasicMaterial({color:0x0d8f86, transparent:true, opacity:0.6});
+const envBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.54,1.62,0.42)), envMat);
+envBox.position.set(0,0.90,0.02); env.add(envBox);
+const envFloor = new THREE.Mesh(
+  new THREE.RingGeometry(0.24,0.27,40),
+  new THREE.MeshBasicMaterial({color:0x0d8f86, transparent:true, opacity:0.3, side:THREE.DoubleSide})
+);
+envFloor.rotation.x = -Math.PI/2; envFloor.position.y = 0.01; env.add(envFloor);
+
+/* ------------------------------ LABELS ---------------------------------- */
+const LABELS = [
+  {t:'DORSAL RAM',      p:new THREE.Vector3(0.09,1.36,-0.20)},
+  {t:'GAS STRUT',       p:new THREE.Vector3(-0.10,1.28,-0.20)},
+  {t:'FOUR-BAR LINKAGE',p:new THREE.Vector3(0.21,1.42,0.07)},
+  {t:'ROTARY LATCH ×6', p:new THREE.Vector3(-0.26,1.30,0.07)},
+  {t:'SLIP RING',       p:new THREE.Vector3(0.0,0.99,0.0)},
+  {t:'APRON ACTUATOR',  p:new THREE.Vector3(0.14,0.90,0.08)},
+  {t:'HIP ACTUATOR',    p:new THREE.Vector3(-0.21,0.84,0.0)}
+];
+const labelEls = LABELS.map(L=>{
+  const d = document.createElement('div');
+  d.className = 'label3d'; d.textContent = L.t;
+  document.getElementById('stage').appendChild(d);
+  return d;
+});
+
+/* ----------------------------- ANIMATION -------------------------------- */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+const ease=x=>x*x*(3-2*x);                       // smoothstep
+const S=(t,a,b)=>ease(seg(t,a,b));
+
+function applyPose(t){
+  /* latches retract */
+  const L = S(t,0.00,0.10);
+  RIG.latches.forEach(g=>{ g.position.z = 0.06 - L*0.035; });
+
+  /* dorsal plate slides aft and up on its rails */
+  const D = S(t,0.10,0.30);
+  RIG.dorsal.position.z = -D*0.22;
+  RIG.dorsal.position.y =  D*0.05;
+  RIG.dorsal.rotation.x = -D*0.14;
+
+  /* chest clamshell */
+  const C = S(t,0.30,0.54);
+  RIG.chest.forEach(h=>{ h.rotation.y = h.userData.sign * C * 1.32; });
+  RIG.lamp.rotation.x = -C*0.66;
+
+  /* pelvis + thighs */
+  const P = S(t,0.54,0.72);
+  RIG.apron.rotation.x = P*0.91;
+  RIG.thighs.forEach(g=>{ g.rotation.z = g.userData.sign * P * 0.77; });
+
+  /* limb shells */
+  const Lm = S(t,0.72,0.88);
+  RIG.lids.forEach(g=>{ g.rotation.x = -Lm*1.68; });
+  RIG.pauldrons.forEach(g=>{
+    g.position.y = 1.50 + Lm*0.06;
+    g.rotation.z = g.userData.sign * Lm * 0.42;
+  });
+
+  /* helmet clears last, with the dorsal move */
+  RIG.helmet.position.y = 1.70 + D*0.17;
+  RIG.helmet.position.z = -D*0.11;
+  RIG.helmet.rotation.x = -D*0.32;
+
+  /* status ring: green closed → amber the instant latches move → cyan open */
+  const ringCol = t < 0.02 ? 0x1f9d55 : (t > 0.95 ? 0x12b3a6 : 0xcf8a2c);
+  statusRing.material.emissive.setHex(ringCol);
+  statusRing.material.color.setHex(ringCol);
+  statusRing.material.emissiveIntensity = 1.6 + Math.sin(perf*4)*(t>0.02&&t<0.95?0.5:0.08);
+
+  /* lamp dims while the shell is open — it is on the moving half */
+  const lit = 1 - S(t,0.30,0.54)*0.85;
+  REG.forEach(m=>{ if(m.userData.layer==='glow' && m!==statusRing) m.material.emissiveIntensity = 1.5*lit; });
+  beam.intensity = 1.2*lit;
+
+  env.visible = state.env && t > 0.80;
+  if (env.visible){
+    const e = S(t,0.80,1.0);
+    envMat.opacity = 0.18 + e*0.4;
+    envFloor.material.opacity = 0.1 + e*0.28;
+  }
+}
+
+/* ------------------------------- MODES ---------------------------------- */
+const MODE_CAM = {
+  shell: {theta:0.52, phi:1.26, dist:4.2, ty:1.02},
+  mech:  {theta:0.95, phi:1.18, dist:3.3, ty:1.20},
+  front: {theta:0.12, phi:1.40, dist:1.5, ty:1.34}
+};
+let mode = 'shell';
+let peel = 0;
+
+function applyMode(){
+  REG.forEach(m=>{
+    const l = m.userData.layer;
+    let op = m.userData.baseOpacity, vis = true;
+    if (mode === 'shell'){
+      if (l === 'mech') vis = false;
+      if (l === 'frame') op = 0.55;
+    } else if (mode === 'mech'){
+      if (l === 'shell' || l === 'front') op = 0.11;
+      if (l === 'frame') op = 0.45;
+    } else { /* front */
+      if (l === 'shell') op = 0.05;
+      if (l === 'frame') op = 0.05;
+      if (l === 'mech') op = (m.userData.layerIndex === 4) ? 0.95 : 0.05;
+    }
+    m.visible = vis;
+    m.material.transparent = op < 1;
+    m.material.opacity = op;
+    m.material.depthWrite = op > 0.6;
+    m.material.needsUpdate = true;
+  });
+  grid.material.opacity = mode === 'front' ? 0.2 : 0.75;
+  grid.material.transparent = true;
+  applyPeel();
+  const c = MODE_CAM[mode];
+  camTarget = {theta:c.theta, phi:c.phi, dist:c.dist, ty:c.ty};
+}
+
+function applyPeel(){
+  RIG.chest.forEach(h=>{
+    h.userData.stack.forEach(m=>{
+      const i = m.userData.layerIndex;
+      const spread = (mode === 'front') ? peel * 0.085 : 0;
+      m.position.z = m.userData.homeZ + spread * (4 - i);
+    });
+  });
+}
+
+/* --------------------------- CAMERA / ORBIT ----------------------------- */
+const cam = {theta:0.52, phi:1.26, dist:4.2, ty:1.02};
+let camTarget = {...cam};
+function updateCamera(){
+  const r = cam.dist, sp = Math.sin(cam.phi);
+  camera.position.set(r*sp*Math.sin(cam.theta), cam.ty + r*Math.cos(cam.phi), r*sp*Math.cos(cam.theta));
+  camera.lookAt(0, cam.ty, 0);
+}
+const drag = {on:false,x:0,y:0,btn:0};
+renderer.domElement.addEventListener('pointerdown', e=>{
+  drag.on=true; drag.x=e.clientX; drag.y=e.clientY; drag.btn=e.button;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointerup', e=>{
+  drag.on=false; try{renderer.domElement.releasePointerCapture(e.pointerId);}catch(_){}
+});
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(!drag.on) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.btn===2||e.shiftKey){
+    camTarget.ty = cam.ty = clamp(cam.ty + dy*0.004, 0.2, 2.0);
+  } else {
+    camTarget.theta = cam.theta -= dx*0.006;
+    camTarget.phi   = cam.phi = clamp(cam.phi + dy*0.005, 0.25, Math.PI-0.15);
+  }
+  updateCamera();
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camTarget.dist = cam.dist = clamp(cam.dist + e.deltaY*0.002, 0.9, 11);
+  updateCamera();
+}, {passive:false});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+
+/* ---------------------------- TRANSPORT UI ------------------------------ */
+const state = {t:0, playing:false, dir:1, speed:1, loop:true, env:false};
+const DURATION = 11.0;   // seconds for a full cycle at 1x
+
+const elPlay = document.getElementById('btn-play');
+const elDir  = document.getElementById('btn-dir');
+const elLoop = document.getElementById('btn-loop');
+const elEnv  = document.getElementById('btn-env');
+const elScrub= document.getElementById('scrub');
+const elTcode= document.getElementById('tcode');
+const elPhBar= document.getElementById('phasebar');
+
+PHASES.forEach((p,i)=>{
+  const d = document.createElement('div');
+  d.className='pseg'; d.style.flex = (p.b-p.a);
+  d.innerHTML = `<span>${String(i+1).padStart(2,'0')} ${p.name}</span>`;
+  d.addEventListener('click', ()=>{ setT(p.a + 0.001); state.playing=false; syncUI(); });
+  elPhBar.appendChild(d);
+});
+const segEls = [...elPhBar.children];
+
+function phaseAt(t){
+  for(let i=PHASES.length-1;i>=0;i--) if(t >= PHASES[i].a) return i;
+  return 0;
+}
+function setT(v){ state.t = clamp(v,0,1); }
+
+elPlay.addEventListener('click', ()=>{
+  if(!state.playing){
+    if(state.dir>0 && state.t>=0.999) setT(0);
+    if(state.dir<0 && state.t<=0.001) setT(1);
+  }
+  state.playing=!state.playing; syncUI();
+});
+elDir.addEventListener('click', ()=>{ state.dir*=-1; syncUI(); });
+elLoop.addEventListener('click', ()=>{ state.loop=!state.loop; syncUI(); });
+elEnv.addEventListener('click', ()=>{ state.env=!state.env; syncUI(); });
+document.querySelectorAll('[data-spd]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    state.speed=parseFloat(b.dataset.spd);
+    document.querySelectorAll('[data-spd]').forEach(x=>x.classList.toggle('on', x===b));
+  });
+});
+document.getElementById('btn-step-f').addEventListener('click', ()=>{
+  const i = phaseAt(state.t);
+  const nxt = PHASES[Math.min(i+1, PHASES.length-1)];
+  setT(state.t >= nxt.a ? 1 : nxt.a + 0.001);
+  state.playing=false; syncUI();
+});
+document.getElementById('btn-step-b').addEventListener('click', ()=>{
+  const i = phaseAt(state.t);
+  const cur = PHASES[i];
+  setT(state.t > cur.a + 0.004 ? cur.a + 0.001 : (i>0 ? PHASES[i-1].a + 0.001 : 0));
+  state.playing=false; syncUI();
+});
+elScrub.addEventListener('input', ()=>{ setT(elScrub.value/1000); state.playing=false; syncUI(); });
+
+window.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); elPlay.click(); }
+  if(e.code==='ArrowRight'){ setT(state.t+0.01); state.playing=false; syncUI(); }
+  if(e.code==='ArrowLeft'){ setT(state.t-0.01); state.playing=false; syncUI(); }
+});
+
+function syncUI(){
+  elPlay.textContent = state.playing ? '❚❚ Pause' : '▶ Play';
+  elPlay.classList.toggle('on', state.playing);
+  elDir.textContent = state.dir>0 ? 'Opening' : 'Closing';
+  elDir.classList.toggle('on', state.dir<0);
+  elLoop.classList.toggle('on', state.loop);
+  elEnv.classList.toggle('on', state.env);
+}
+
+/* ------------------------------ SIDEBAR --------------------------------- */
+const bodyEl = document.getElementById('body');
+document.querySelectorAll('.mode').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    mode = el.dataset.mode;
+    document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('on', x===el));
+    applyMode(); renderSide();
+  });
+});
+
+function renderSide(){
+  if(mode === 'front'){
+    bodyEl.innerHTML = `
+      <div class="kicker">Front Plate · Cross-section</div>
+      <h2 class="title">How the coloured front is built</h2>
+      <div class="sec"><p>The visible front is five layers, not one part. Drag the slider to pull them apart — the point is that the layer you paint and the layer that carries load are never the same piece.</p></div>
+      <div class="sec">
+        <div class="rlabel"><span>Assembled</span><span>Peeled</span></div>
+        <input type="range" class="slim" id="peel" min="0" max="100" value="${Math.round(peel*100)}">
+      </div>
+      <div class="sec"><h3>Layers · front to back</h3>
+        ${LAYERS.map((l,i)=>`<div class="layer" data-li="${i}">
+          <span class="sw" style="background:${l.col}"></span>
+          <span class="t">${l.nm}<em>${l.sub}</em></span>
+          <span class="th">${l.th}</span></div>`).join('')}
+      </div>
+      <div class="sec" id="layer-note"><h3>Note</h3><p>${LAYERS[3].note}</p></div>
+      <div class="sec"><h3>Parting line</h3><p>The split runs down the sternum, offset <code>5 mm</code> off centre so it falls on a shape change rather than across a flat panel — a seam on a curve reads as a design line, a seam on a flat face reads as a crack. The lamp bezel sits proud of the seam and bridges it visually when closed.</p></div>
+      <div class="warn"><b>Paint order</b>Fit, hinge and latch the panel in bare material first. Confirm the gasket crushes evenly all the way round, then strip it down and paint. Painting first means sanding the paint off again at every shim.</div>`;
+    const pk = document.getElementById('peel');
+    pk.addEventListener('input', ()=>{ peel = pk.value/100; applyPeel(); });
+    bodyEl.querySelectorAll('[data-li]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        document.getElementById('layer-note').innerHTML =
+          `<h3>${LAYERS[el.dataset.li].nm}</h3><p>${LAYERS[el.dataset.li].note}</p>`;
+      });
+    });
+    return;
+  }
+
+  if(mode === 'mech'){
+    bodyEl.innerHTML = `
+      <div class="kicker">Mechanism View</div>
+      <h2 class="title">What drives the cycle</h2>
+      <div class="sec"><p>The shell drops to 11% so you can watch the hardware. Play the sequence from here — the interesting part is the order, not any single actuator.</p></div>
+      <div class="sec"><h3>Interlock order</h3><ul class="notes">
+        <li><b>Latches before anything.</b> Six rotary latches, all reporting open, or the controller refuses the next step.</li>
+        <li><b>Dorsal before chest.</b> The back plate is the keystone — the front halves physically cannot clear until it has travelled aft.</li>
+        <li><b>Chest before pelvis.</b> Keeps the centre of mass predictable while the apron swings.</li>
+        <li><b>Limbs last.</b> Lightest, non-structural, and the only ones safe to run in parallel.</li>
+      </ul></div>
+      <div class="sec"><h3>Live actuators</h3><div id="actlist"></div></div>
+      <div class="sec"><h3>Closing is not a reverse</h3><p>Running the open sequence backwards gets the shell shut but not <em>sealed</em>. Closing ends with a separate capture step: the halves come together to within <code>2 mm</code>, pause, then the latches pull them the rest of the way, crushing the gasket evenly. Drive it shut with the rams alone and you pinch one edge first and leave a gap at the other.</p></div>
+      <div class="warn"><b>Never close unattended</b>Closing is the dangerous direction. Hold-to-run control only — release the button and it stops. No one-press close, ever, on a mechanism that shuts around a person.</div>`;
+    return;
+  }
+
+  bodyEl.innerHTML = `
+    <div class="kicker">Shell View</div>
+    <h2 class="title" id="ph-title">Standby</h2>
+    <div class="sec"><p id="ph-desc">—</p></div>
+    <div class="sec"><h3>Active this phase</h3><div id="actlist"></div></div>
+    <div class="sec"><h3>Cycle</h3><table class="specs">
+      <tr><td>Full open</td><td>11.0 s at 1×</td></tr>
+      <tr><td>Full close + capture</td><td>13.5 s</td></tr>
+      <tr><td>Peak draw</td><td>14.8 A (dorsal + chest)</td></tr>
+      <tr><td>Energy per cycle</td><td>~3.1 Wh</td></tr>
+      <tr><td>Entry opening</td><td>540 mm shoulder · 420 mm hip</td></tr>
+      <tr><td>Hold at open</td><td>mechanical detent, 0 A</td></tr>
+    </table></div>
+    <div class="warn"><b>Manual egress</b>Every latch has a pull-cable release reachable from inside the frame. If the pack dies at full close, the wearer gets themselves out with no power and no help. Design this before you design anything else.</div>`;
+}
+
+/* ------------------------------- LOOP ----------------------------------- */
+function resize(){
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+}
+window.addEventListener('resize', resize);
+
+let last = performance.now(), perf = 0;
+const v3 = new THREE.Vector3();
+
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt = Math.min((now-last)/1000, 0.05); last = now; perf += dt;
+
+  if(state.playing){
+    state.t += state.dir * dt * state.speed / DURATION;
+    const wasDir = state.dir;
+    if(state.t >= 1){ state.t = 1; state.loop ? (state.dir = -1) : (state.playing = false, syncUI()); }
+    if(state.t <= 0){ state.t = 0; state.loop ? (state.dir = 1)  : (state.playing = false, syncUI()); }
+    if(state.dir !== wasDir) syncUI();   // only on a turnaround, not every frame
+  }
+
+  applyPose(state.t);
+
+  /* camera easing toward mode preset */
+  cam.theta += (camTarget.theta-cam.theta)*0.07;
+  cam.phi   += (camTarget.phi  -cam.phi  )*0.07;
+  cam.dist  += (camTarget.dist -cam.dist )*0.07;
+  cam.ty    += (camTarget.ty   -cam.ty   )*0.07;
+  updateCamera();
+
+  /* readouts */
+  elScrub.value = Math.round(state.t*1000);
+  elTcode.textContent = `T ${state.t.toFixed(3)} · ${(state.t*DURATION).toFixed(1)} s`;
+  const pi = phaseAt(state.t), ph = PHASES[pi];
+  document.getElementById('ph-num').textContent = String(pi+1).padStart(2,'0');
+  document.getElementById('ph-name').textContent = ph.name.toUpperCase();
+  document.getElementById('ph-dir').textContent =
+    !state.playing ? '— HOLD —' : (state.dir>0 ? '▼ OPENING' : '▲ CLOSING');
+  segEls.forEach((s,i)=>s.classList.toggle('on', i===pi));
+
+  const tEl = document.getElementById('ph-title');
+  if(tEl){ tEl.textContent = ph.name; document.getElementById('ph-desc').textContent = ph.desc; }
+
+  const al = document.getElementById('actlist');
+  if(al){
+    const local = seg(state.t, ph.a, ph.b);
+    const want = ph.act.map(a=>
+      `<div class="act"><span class="bar"><i style="width:${Math.round(local*100)}%"></i></span>
+       <span class="nm">${a[0]}</span><span class="val">${a[1]} · ${a[2]}</span></div>`).join('');
+    if(al.dataset.key !== ph.id + Math.round(local*25)){
+      al.dataset.key = ph.id + Math.round(local*25);
+      al.innerHTML = want;
+    }
+  }
+
+  /* 3D labels, mechanism view only */
+  const showLabels = mode === 'mech';
+  LABELS.forEach((L,i)=>{
+    const el = labelEls[i];
+    if(!showLabels){ el.style.opacity = 0; return; }
+    v3.copy(L.p).project(camera);
+    const x = (v3.x*0.5+0.5)*wrap.clientWidth, y = (-v3.y*0.5+0.5)*wrap.clientHeight;
+    el.style.left = x+'px'; el.style.top = y+'px';
+    el.style.opacity = (v3.z < 1) ? 0.9 : 0;
+  });
+
+  renderer.render(scene, camera);
+}
+
+resize(); applyMode(); updateCamera(); syncUI(); renderSide();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
