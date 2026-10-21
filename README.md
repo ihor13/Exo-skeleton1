@@ -1,11 +1,13 @@
 # Exo Skeleton 1
 
+**[→ Open the live viewer](https://exo-skeleton1.netlify.app/#parts)**
+
 An interactive 3D reference for a powered wearable armor rig — every joint actuator, plate and
 power component, plus a scrubable animation of how the shell opens so someone can step into it.
 
 Runs in a browser with no build step, no framework and no install. Open `index.html` and it works.
 
-![Parts reference](docs/parts-reference.gif)
+![The parts reference view: the rig on a light stage on the left, the documented parts list on the right](docs/screenshot.png)
 
 ## What this is
 
@@ -21,10 +23,24 @@ have to be wired in hardware rather than firmware.
 
 **Two views, switched from the tabs at the top:**
 
-| View | What it shows |
-|---|---|
-| **Parts Reference** | The assembled rig. Click any part for specs, actuation and build notes. Toggle exploded view, X-ray shell, the power harness and the chest lamp. |
-| **Entry Sequence** | The don/doff cycle as a scrubable timeline, with a mechanism cutaway and a layer-by-layer breakdown of the front plate. |
+| View | What it shows | Live |
+|---|---|---|
+| **Parts Reference** | The assembled rig. Click any part for specs, actuation and build notes. Toggle exploded view, X-ray shell, the power harness and the chest lamp. | [open](https://exo-skeleton1.netlify.app/#parts) |
+| **Entry Sequence** | The don/doff cycle as a scrubable timeline, with a mechanism cutaway and a layer-by-layer breakdown of the front plate. | [open](https://exo-skeleton1.netlify.app/#sequence) |
+
+The URL hash selects the view, so `#parts` and `#sequence` are directly linkable.
+
+### Parts reference
+
+Orbit the rig, strip the shell back, or pull the whole assembly apart. The toolbar toggles an
+exploded view, an X-ray shell, the power harness routing and the chest lamp.
+
+![Selecting parts, then the X-ray shell and exploded view in the parts reference](docs/parts-reference.gif)
+
+Click any part — in the 3D view or in the list — and the panel gives you what drives it, what it
+costs in torque and current, and the fabrication notes that matter when you build it.
+
+![The detail panel for the knee linear actuator, with its specifications and build notes](docs/screenshot-detail.png)
 
 ### Entry sequence
 
@@ -49,7 +65,10 @@ latch strikers bolt into 2 mm aluminium, never into the plastic skin.
 
 ## Running it
 
-Open `index.html` in any modern browser. That is the whole procedure.
+The viewer is deployed at **[exo-skeleton1.netlify.app](https://exo-skeleton1.netlify.app/)** — nothing
+to install if you just want to look at it.
+
+To run it locally, open `index.html` in any modern browser. That is the whole procedure.
 
 If your browser blocks local files, serve the folder instead:
 
@@ -58,8 +77,17 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-To publish it, push the repo and turn on GitHub Pages pointed at the repository root — `index.html`
-is self-contained, so nothing else is required.
+### Deploying your own copy
+
+`index.html` is self-contained, so any static host works with no build configuration:
+
+- **Netlify** — drag the folder onto the dashboard, or connect the repo and leave the build command
+  empty with the publish directory set to the repository root. This is how the live site above is
+  hosted.
+- **GitHub Pages** — push the repo and point Pages at the repository root.
+
+If you edit the viewers in `src/`, run `python3 tools/build.py` before deploying so `index.html`
+picks up the changes.
 
 An internet connection is needed on first load: three.js is pulled from a CDN rather than vendored,
 so this repository contains no third-party source. To run fully offline, download
@@ -87,7 +115,7 @@ src/
   entry-sequence.html   standalone sequence viewer
 tools/
   build.py              regenerates index.html from the two viewers
-docs/                   demo GIFs used by this README
+docs/                   screenshots and demo GIFs used by this README
 LICENSE                 Apache License 2.0
 NOTICE                  attribution notice
 ```
